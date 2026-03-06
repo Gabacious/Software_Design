@@ -4,7 +4,6 @@
 
 const DashboardAPI = (function() {
     return {
-        // Session management
         getSession: function() {
             return StockSenseAPI.getSession();
         },
@@ -12,9 +11,6 @@ const DashboardAPI = (function() {
         validateSession: function() {
             const result = StockSenseAPI.validateSession();
             if (!result.valid) {
-                if (result.reason === 'expired') {
-                    alert('Your session has expired. Please login again.');
-                }
                 window.location.replace('login.html');
                 return null;
             }
@@ -26,7 +22,6 @@ const DashboardAPI = (function() {
             window.location.replace('login.html');
         },
         
-        // Dashboard data
         getStats: function() {
             return StockSenseAPI.getDashboardStats();
         },
@@ -35,7 +30,6 @@ const DashboardAPI = (function() {
             return StockSenseAPI.getRecentOrders(limit);
         },
         
-        // UI helpers (passthrough to API)
         formatCurrency: function(amount) {
             return StockSenseAPI.formatCurrency(amount);
         },

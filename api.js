@@ -3,18 +3,20 @@
 // ==========================================
 
 const StockSenseAPI = (function() {
+    console.log('🔥 API file loading...');
+    
     // ==================== PRIVATE DATA ====================
     const users = [
         { 
             username: 'admin', 
-            password: 'Admin@123', 
+            password: 'Admin@1234567890abc',
             role: 'admin', 
             employeeId: 'EMP-2024-001',
             name: 'Admin User'
         },
         { 
             username: 'staff', 
-            password: 'Staff@123', 
+            password: 'Staff@1234567890xyz',
             role: 'staff', 
             employeeId: 'EMP-2024-002',
             name: 'Staff User'
@@ -57,6 +59,7 @@ const StockSenseAPI = (function() {
         if (saved) {
             try {
                 security = JSON.parse(saved);
+                console.log('📦 Security data loaded:', security);
             } catch (e) {
                 console.error('Failed to load security data');
             }
@@ -74,7 +77,10 @@ const StockSenseAPI = (function() {
     return {
         // ===== AUTHENTICATION =====
         validateUser: function(username, password) {
-            return users.find(u => u.username === username && u.password === password);
+            console.log('🔍 Validating:', username);
+            const user = users.find(u => u.username === username && u.password === password);
+            console.log('User found:', user ? 'Yes' : 'No');
+            return user;
         },
 
         getUserByUsername: function(username) {
@@ -88,8 +94,8 @@ const StockSenseAPI = (function() {
 
         recordFailure: function() {
             security.failures++;
+            console.log('⚠️ Failures:', security.failures);
             
-            // Check for permanent lock (6th failure)
             if (security.failures >= 6) {
                 security.permanentlyLocked = true;
                 security.permanentLockTime = new Date().toISOString();
@@ -104,15 +110,11 @@ const StockSenseAPI = (function() {
                 };
             }
             
-            // Progressive lockout on 3rd, 4th, 5th failures
             if (security.failures >= 3 && security.failures <= 5) {
-                security.stage = security.failures - 2; // 3->1, 4->2, 5->3
-                
-                // Lock durations: stage1=30s, stage2=30s, stage3=1min
+                security.stage = security.failures - 2;
                 const minutes = [0.5, 0.5, 1][security.stage - 1];
                 const lockTime = new Date(Date.now() + minutes * 60 * 1000);
                 security.lockedUntil = lockTime.toISOString();
-                
                 saveToStorage();
                 return {
                     locked: true,
@@ -124,7 +126,6 @@ const StockSenseAPI = (function() {
                 };
             }
             
-            // Just a failure, no lock yet
             saveToStorage();
             return {
                 locked: false,
@@ -133,7 +134,6 @@ const StockSenseAPI = (function() {
         },
 
         checkLocked: function() {
-            // Check permanent lock
             if (security.permanentlyLocked) {
                 return {
                     locked: true,
@@ -142,7 +142,6 @@ const StockSenseAPI = (function() {
                 };
             }
             
-            // Check temporary lock
             if (!security.lockedUntil) {
                 return { locked: false };
             }
@@ -151,7 +150,6 @@ const StockSenseAPI = (function() {
             const lockTime = new Date(security.lockedUntil);
             
             if (now < lockTime) {
-                // Calculate remaining time for countdown
                 const remainingMs = lockTime - now;
                 const remainingSec = Math.floor(remainingMs / 1000);
                 const minutes = Math.floor(remainingSec / 60);
@@ -172,7 +170,6 @@ const StockSenseAPI = (function() {
                 };
             }
             
-            // Lock expired - reset
             security.lockedUntil = null;
             security.stage = 0;
             saveToStorage();
@@ -188,6 +185,7 @@ const StockSenseAPI = (function() {
                 permanentLockTime: null
             };
             saveToStorage();
+            console.log('🔄 Security reset');
             return { success: true };
         },
 
@@ -202,6 +200,7 @@ const StockSenseAPI = (function() {
                 sessionId: 'sess_' + Math.random().toString(36).substr(2, 9)
             };
             sessionStorage.setItem('stockSenseUser', JSON.stringify(session));
+            console.log('🔐 Session created for:', user.role);
             return session;
         },
 
@@ -237,10 +236,6 @@ const StockSenseAPI = (function() {
 
         getRecentOrders: function(limit = 5) {
             return dashboardData.recentOrders.slice(0, limit);
-        },
-
-        getAllOrders: function() {
-            return [...dashboardData.recentOrders];
         },
 
         // ===== UTILITIES =====
@@ -280,3 +275,7 @@ const StockSenseAPI = (function() {
         }
     };
 })();
+
+// Make sure it's globally available
+window.StockSenseAPI = StockSenseAPI;
+console.log('✅ API ready');
