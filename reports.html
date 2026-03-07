@@ -1,0 +1,340 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>StockSense PH - Reports</title>
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Bootstrap Icons -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Outfit', sans-serif;
+            background-color: #f8fafc;
+        }
+        .nav-link-custom {
+            position: relative;
+            color: #64748b;
+            font-weight: 500;
+            padding: 0.5rem 0.25rem;
+            margin: 0 0.75rem;
+        }
+        .nav-link-custom:hover {
+            color: #0d6efd;
+        }
+        .nav-link-custom.active {
+            color: #0d6efd;
+        }
+        .nav-link-custom.active::after {
+            content: '';
+            position: absolute;
+            bottom: -4px;
+            left: 0;
+            width: 100%;
+            height: 2px;
+            background: #0d6efd;
+        }
+        .security-banner {
+            background: linear-gradient(135deg, #0b5e9e 0%, #084298 100%);
+            color: white;
+        }
+        .stat-icon {
+            width: 48px;
+            height: 48px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 12px;
+            font-size: 1.5rem;
+        }
+        .progress-bar-custom {
+            height: 8px;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body>
+    <script src="api.js"></script>
+    <script>
+        const session = StockSenseAPI.getSession();
+        if (!session) {
+            window.location.href = 'login.html';
+        }
+        // Staff cannot access reports page
+        if (session && session.role === 'staff') {
+            alert('Access denied. Admins only.');
+            window.location.href = 'staff-dashboard.html';
+        }
+        const isAdmin = session ? session.role === 'admin' : false;
+    </script>
+    
+    <div id="reportsApp"></div>
+
+    <script>
+        const ReportsPage = {
+            session: null,
+            isAdmin: false,
+            
+            init: function() {
+                this.session = StockSenseAPI.getSession();
+                if (!this.session) {
+                    window.location.href = 'login.html';
+                    return;
+                }
+                this.isAdmin = this.session.role === 'admin';
+                this.render();
+            },
+            
+            render: function() {
+                const stats = StockSenseAPI.getDashboardStats();
+                
+                // Monthly sales data
+                const monthlySales = [
+                    { month: 'Jan', sales: 450000, orders: 89 },
+                    { month: 'Feb', sales: 520000, orders: 102 },
+                    { month: 'Mar', sales: 480000, orders: 95 },
+                    { month: 'Apr', sales: 610000, orders: 118 },
+                    { month: 'May', sales: 550000, orders: 107 },
+                    { month: 'Jun', sales: 724500, orders: 156 }
+                ];
+
+                // Top products
+                const topProducts = [
+                    { name: 'Laptop - Dell XPS 15', sales: 45, revenue: 3375000, stock: 45 },
+                    { name: 'Wireless Mouse', sales: 230, revenue: 195500, stock: 230 },
+                    { name: 'Mechanical Keyboard', sales: 120, revenue: 300000, stock: 120 },
+                    { name: 'Monitor 24"', sales: 67, revenue: 569500, stock: 67 },
+                    { name: 'External SSD 1TB', sales: 34, revenue: 153000, stock: 34 }
+                ];
+
+                const maxSales = Math.max(...monthlySales.map(m => m.sales));
+
+                const html = `
+                    <!-- Security Banner -->
+                    <div class="security-banner px-4 py-2 small d-flex justify-content-between align-items-center">
+                        <div class="d-flex align-items-center gap-2">
+                            <i class="bi bi-shield-check fs-5"></i>
+                            <span>Reports & Analytics | ${this.session.name} (Admin)</span>
+                        </div>
+                        <button onclick="ReportsPage.logout()" class="btn btn-link text-white p-0 text-decoration-none small opacity-75">Logout</button>
+                    </div>
+
+                    <!-- Top Navigation -->
+                    <nav class="navbar navbar-expand-lg bg-white shadow-sm sticky-top">
+                        <div class="container">
+                            <a class="navbar-brand d-flex align-items-center gap-2" href="#">
+                                <div class="bg-primary bg-gradient rounded-3 p-2 text-white">
+                                    <i class="bi bi-boxes fs-4"></i>
+                                </div>
+                                <span class="fw-bold text-dark fs-4">StockSense PH</span>
+                            </a>
+                            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                                <span class="navbar-toggler-icon"></span>
+                            </button>
+                            <div class="collapse navbar-collapse" id="navbarNav">
+                                <ul class="navbar-nav ms-auto">
+                                    <li class="nav-item"><a href="admin-dashboard.html" class="nav-link-custom">Dashboard</a></li>
+                                    <li class="nav-item"><a href="inventory.html" class="nav-link-custom">Inventory</a></li>
+                                    <li class="nav-item"><a href="sales.html" class="nav-link-custom">Sales</a></li>
+                                    <li class="nav-item"><a href="customers.html" class="nav-link-custom">Customers</a></li>
+                                    <li class="nav-item"><a href="#" class="nav-link-custom active">Reports</a></li>
+                                    <li class="nav-item"><a href="settings.html" class="nav-link-custom">Settings</a></li>
+                                </ul>
+                            </div>
+                        </div>
+                    </nav>
+
+                    <!-- Main Content -->
+                    <main class="container py-4">
+                        <!-- Header -->
+                        <div class="mb-4">
+                            <h2 class="fw-bold mb-1">Reports & Analytics</h2>
+                            <p class="text-secondary-emphasis small mb-0">Business insights and performance metrics</p>
+                        </div>
+
+                        <!-- Summary Cards -->
+                        <div class="row g-4 mb-4">
+                            <div class="col-md-3">
+                                <div class="card border-0 shadow-sm h-100">
+                                    <div class="card-body">
+                                        <p class="text-secondary small mb-1">Total Revenue (YTD)</p>
+                                        <h3 class="fw-bold mb-2">${StockSenseAPI.formatCurrency(monthlySales.reduce((sum, m) => sum + m.sales, 0))}</h3>
+                                        <span class="badge bg-success bg-opacity-10 text-success">+15.3% vs last year</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="card border-0 shadow-sm h-100">
+                                    <div class="card-body">
+                                        <p class="text-secondary small mb-1">Total Orders</p>
+                                        <h3 class="fw-bold mb-2">${monthlySales.reduce((sum, m) => sum + m.orders, 0)}</h3>
+                                        <span class="badge bg-success bg-opacity-10 text-success">+12.1% vs last year</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="card border-0 shadow-sm h-100">
+                                    <div class="card-body">
+                                        <p class="text-secondary small mb-1">Average Order Value</p>
+                                        <h3 class="fw-bold mb-2">${StockSenseAPI.formatCurrency(monthlySales.reduce((sum, m) => sum + m.sales, 0) / monthlySales.reduce((sum, m) => sum + m.orders, 0))}</h3>
+                                        <span class="badge bg-success bg-opacity-10 text-success">+3.2% vs last year</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="card border-0 shadow-sm h-100">
+                                    <div class="card-body">
+                                        <p class="text-secondary small mb-1">Inventory Value</p>
+                                        <h3 class="fw-bold mb-2">${StockSenseAPI.formatCurrency(4528900)}</h3>
+                                        <span class="badge bg-warning bg-opacity-10 text-warning">-2.1% vs last month</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Monthly Sales Chart -->
+                        <div class="row g-4 mb-4">
+                            <div class="col-lg-8">
+                                <div class="card border-0 shadow-sm h-100">
+                                    <div class="card-header bg-white border-0 pt-4 pb-0">
+                                        <h5 class="fw-bold mb-0">Monthly Sales Performance</h5>
+                                    </div>
+                                    <div class="card-body">
+                                        <div class="space-y-3">
+                                            ${monthlySales.map(m => `
+                                                <div class="mb-3">
+                                                    <div class="d-flex justify-content-between small mb-1">
+                                                        <span class="fw-medium">${m.month}</span>
+                                                        <span class="text-secondary">${StockSenseAPI.formatCurrency(m.sales)} (${m.orders} orders)</span>
+                                                    </div>
+                                                    <div class="progress progress-bar-custom">
+                                                        <div class="progress-bar bg-primary" role="progressbar" style="width: ${(m.sales / maxSales) * 100}%"></div>
+                                                    </div>
+                                                </div>
+                                            `).join('')}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="col-lg-4">
+                                <div class="card border-0 shadow-sm h-100">
+                                    <div class="card-header bg-white border-0 pt-4 pb-0">
+                                        <h5 class="fw-bold mb-0">Quick Stats</h5>
+                                    </div>
+                                    <div class="card-body">
+                                        <div class="space-y-4">
+                                            <div class="mb-4">
+                                                <p class="text-secondary small mb-1">Best Selling Category</p>
+                                                <h5 class="fw-bold mb-1">Electronics</h5>
+                                                <span class="badge bg-success bg-opacity-10 text-success">45% of sales</span>
+                                            </div>
+                                            <div class="mb-4">
+                                                <p class="text-secondary small mb-1">Top Customer</p>
+                                                <h5 class="fw-bold mb-1">Jose Rizal III</h5>
+                                                <span class="small text-secondary">₱312,000 total spent</span>
+                                            </div>
+                                            <div class="mb-4">
+                                                <p class="text-secondary small mb-1">Most Popular Payment</p>
+                                                <h5 class="fw-bold mb-1">GCash</h5>
+                                                <span class="small text-secondary">52% of transactions</span>
+                                            </div>
+                                            <div class="mb-4">
+                                                <p class="text-secondary small mb-1">Low Stock Items</p>
+                                                <h5 class="fw-bold text-warning mb-1">${stats.lowStock}</h5>
+                                                <span class="small text-secondary">Need reorder soon</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Top Products -->
+                        <div class="card border-0 shadow-sm mb-4">
+                            <div class="card-header bg-white border-0 pt-4 pb-0">
+                                <h5 class="fw-bold mb-0">Top Selling Products</h5>
+                            </div>
+                            <div class="card-body">
+                                <div class="table-responsive">
+                                    <table class="table table-hover align-middle">
+                                        <thead class="table-light">
+                                            <tr>
+                                                <th>Product</th>
+                                                <th>Units Sold</th>
+                                                <th>Revenue</th>
+                                                <th>Current Stock</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            ${topProducts.map(p => `
+                                                <tr>
+                                                    <td class="fw-medium">${p.name}</td>
+                                                    <td>${p.sales}</td>
+                                                    <td class="fw-medium">${StockSenseAPI.formatCurrency(p.revenue)}</td>
+                                                    <td>
+                                                        <span class="${p.stock < 50 ? 'text-warning fw-bold' : ''}">${p.stock}</span>
+                                                    </td>
+                                                </tr>
+                                            `).join('')}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Export Options -->
+                        <div class="card border-0 shadow-sm">
+                            <div class="card-header bg-white border-0 pt-4 pb-0">
+                                <h5 class="fw-bold mb-0">Export Reports</h5>
+                            </div>
+                            <div class="card-body">
+                                <div class="row g-3">
+                                    <div class="col-md-3 col-6">
+                                        <button class="btn btn-outline-primary w-100 p-3">
+                                            <i class="bi bi-bar-chart-line fs-2 d-block mb-2"></i>
+                                            <span>Sales Report</span>
+                                        </button>
+                                    </div>
+                                    <div class="col-md-3 col-6">
+                                        <button class="btn btn-outline-success w-100 p-3">
+                                            <i class="bi bi-box fs-2 d-block mb-2"></i>
+                                            <span>Inventory Report</span>
+                                        </button>
+                                    </div>
+                                    <div class="col-md-3 col-6">
+                                        <button class="btn btn-outline-info w-100 p-3">
+                                            <i class="bi bi-people fs-2 d-block mb-2"></i>
+                                            <span>Customer Report</span>
+                                        </button>
+                                    </div>
+                                    <div class="col-md-3 col-6">
+                                        <button class="btn btn-outline-warning w-100 p-3">
+                                            <i class="bi bi-cash-stack fs-2 d-block mb-2"></i>
+                                            <span>Financial Report</span>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </main>
+                `;
+                
+                document.getElementById('reportsApp').innerHTML = html;
+            },
+            
+            logout: function() {
+                StockSenseAPI.destroySession();
+                window.location.href = 'login.html';
+            }
+        };
+
+        // Initialize immediately
+        ReportsPage.init();
+    </script>
+    <!-- Bootstrap JS Bundle with Popper -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

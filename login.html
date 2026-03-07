@@ -1,379 +1,559 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>StockSense PH - Secure Login</title>
-    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Bootstrap Icons -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <style>
         body {
             font-family: 'Outfit', sans-serif;
             background: linear-gradient(135deg, #0a1a2f 0%, #1a3b5c 100%);
             min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0;
+            padding: 1rem;
         }
+
         .glass-card {
             background: rgba(255, 255, 255, 0.95);
             backdrop-filter: blur(10px);
             border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 1.5rem;
+            padding: 2rem;
+            position: relative;
+            z-index: 1;
         }
+
         .input-field:focus {
             transform: scale(1.02);
             transition: all 0.3s ease;
+            box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
         }
-        .shake {
-            animation: shake 0.5s ease-in-out;
-        }
-        @keyframes shake {
-            0%,100%{transform:translateX(0)} 25%{transform:translateX(-10px)} 75%{transform:translateX(10px)}
-        }
+
         .lockout-overlay {
-            background: rgba(239, 68, 68, 0.95);
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(220, 53, 69, 0.95);
+            border-radius: 1.5rem;
+            z-index: 1050;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            padding: 2rem;
+            backdrop-filter: blur(5px);
         }
+
         .permanent-lockout-overlay {
-            background: rgba(127, 29, 29, 0.98);
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(153, 27, 27, 0.98);
+            border-radius: 1.5rem;
+            z-index: 1050;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            padding: 2rem;
+            border: 4px solid rgba(255, 255, 255, 0.3);
+            backdrop-filter: blur(5px);
         }
+
         .password-strength {
             height: 4px;
             border-radius: 2px;
             transition: all 0.3s ease;
+            background-color: #e9ecef;
         }
-        .strength-weak { background: #ef4444; width: 33%; }
-        .strength-medium { background: #f59e0b; width: 66%; }
-        .strength-strong { background: #10b981; width: 100%; }
+
+        .strength-weak {
+            background: #dc3545;
+            width: 33%;
+        }
+
+        .strength-medium {
+            background: #fd7e14;
+            width: 66%;
+        }
+
+        .strength-strong {
+            background: #198754;
+            width: 100%;
+        }
+
         .countdown-timer {
             font-family: monospace;
-            font-size: 2rem;
+            font-size: 2.5rem;
             font-weight: bold;
+            background: rgba(255, 255, 255, 0.2);
+            padding: 0.75rem 1.5rem;
+            border-radius: 1rem;
+            display: inline-block;
         }
-        .debug-panel {
-            background: #1e1e1e;
-            color: #00ff00;
-            font-family: monospace;
-            font-size: 11px;
-            padding: 8px;
-            border-radius: 6px;
-            margin-top: 10px;
-            max-height: 120px;
-            overflow-y: auto;
+
+        .logo-box {
+            width: 80px;
+            height: 80px;
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(8px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 1rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 1.5rem;
+        }
+
+        .logo-box i {
+            font-size: 2.5rem;
+            color: #6ea8fe;
+        }
+
+        .position-relative {
+            position: relative;
+        }
+
+        .d-none {
+            display: none !important;
+        }
+
+        .login-container {
+            max-width: 450px;
+            width: 100%;
+            position: relative;
+        }
+
+        .bg-opacity-20 {
+            --bs-bg-opacity: 0.2;
+        }
+
+        .lockout-stage {
+            background: rgba(255, 255, 255, 0.2);
+            padding: 0.5rem 1.5rem;
+            border-radius: 2rem;
+            font-size: 0.875rem;
+            font-weight: 600;
         }
     </style>
 </head>
-<body class="flex items-center justify-center p-4">
-    <div class="w-full max-w-md relative">
-        <!-- Temporary Lockout Overlay -->
-        <div id="lockoutOverlay" class="hidden absolute inset-0 lockout-overlay rounded-3xl z-50 flex flex-col items-center justify-center text-white p-8 text-center">
-            <svg class="w-16 h-16 mb-4 animate-pulse" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
-            </svg>
-            <h3 class="text-2xl font-bold mb-2">Account Temporarily Locked</h3>
-            <p class="mb-4">Too many failed login attempts.</p>
-            <div class="mb-4 px-4 py-2 bg-white/20 rounded-full text-sm font-semibold">
-                Lockout Stage <span id="currentStage">1</span>/3
-            </div>
-            <div class="mb-4">
-                <p class="text-sm opacity-80 mb-2">Time remaining:</p>
-                <div id="countdownTimer" class="countdown-timer bg-white/20 px-6 py-3 rounded-xl">01:00</div>
-            </div>
-            <p class="text-sm opacity-80">Locked since: <span id="lockoutTime"></span></p>
-            <button onclick="App.unlockAccount()" class="mt-6 px-6 py-3 bg-white text-red-600 rounded-lg font-semibold hover:bg-gray-100">🔓 Lockout Override</button>
-        </div>
 
-        <!-- Permanent Lockout Overlay -->
-        <div id="permanentLockoutOverlay" class="hidden absolute inset-0 permanent-lockout-overlay rounded-3xl z-50 flex flex-col items-center justify-center text-white p-8 text-center border-4 border-red-300">
-            <svg class="w-20 h-20 mb-4 text-red-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
-            </svg>
-            <h3 class="text-3xl font-bold mb-2">Account Permanently Locked</h3>
-            <p class="mb-6 text-lg">Contact IT Support: 09178821886</p>
-            <p class="text-sm opacity-80 mb-2">Locked since: <span id="permanentLockoutTime"></span></p>
-            <button onclick="App.unlockAccount()" class="mt-4 px-6 py-3 bg-white text-red-800 rounded-lg font-semibold hover:bg-gray-100">🔓 IT Unlock (Demo)</button>
-        </div>
-
-        <!-- Logo Section -->
-        <div class="text-center mb-8">
-            <div class="inline-flex items-center justify-center w-20 h-20 rounded-2xl bg-white/10 backdrop-blur-md border border-white/20 mb-4">
-                <svg class="w-10 h-10 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/>
-                </svg>
-            </div>
-            <h1 class="text-3xl font-bold text-white mb-1">StockSense PH</h1>
-            <p class="text-slate-400">Enterprise Inventory Management</p>
-        </div>
-
-        <!-- Login Card -->
-        <div class="glass-card rounded-3xl p-8 shadow-2xl">
-            <div id="errorContainer" class="hidden mb-4 p-4 bg-red-50 border border-red-200 rounded-xl text-red-600 text-sm">
-                <div class="flex items-start gap-2">
-                    <svg class="w-5 h-5 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                    </svg>
-                    <div id="errorText" class="flex-1 font-medium"></div>
+<body>
+    <div class="login-container">
+        <!-- Login Card Container (relative for overlays) -->
+        <div id="loginContainer" class="position-relative">
+            <!-- Temporary Lockout Overlay -->
+            <div id="lockoutOverlay" class="lockout-overlay d-none">
+                <i class="bi bi-shield-lock-fill display-1 mb-4"></i>
+                <h3 class="fw-bold mb-2">Account Temporarily Locked</h3>
+                <p class="mb-4">Too many failed login attempts.</p>
+                <div class="lockout-stage mb-4">
+                    Lockout Stage <span id="currentStage">1</span>/3
                 </div>
-                <div id="attemptsWarning" class="hidden mt-2 pt-2 border-t border-red-200 text-xs font-semibold"></div>
-            </div>
-
-            <div id="successContainer" class="hidden mb-4 p-4 bg-emerald-50 border border-emerald-200 rounded-xl text-emerald-600 text-sm flex items-center gap-2">
-                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
-                </svg>
-                <span id="successText"></span>
-            </div>
-
-            <form id="loginForm" class="space-y-5">
-                <div>
-                    <label class="block text-sm font-medium text-slate-700 mb-2">Username <span class="text-red-500">*</span></label>
-                    <div class="relative">
-                        <svg class="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
-                        </svg>
-                        <input type="text" id="username" class="input-field w-full pl-12 pr-4 py-3 rounded-xl border-2 border-slate-200 focus:border-blue-500 focus:outline-none bg-white" placeholder="Enter username">
-                    </div>
+                <div class="mb-4 text-center">
+                    <p class="small opacity-75 mb-2">Time remaining:</p>
+                    <div id="countdownTimer" class="countdown-timer">00:00</div>
                 </div>
-                <div>
-                    <label class="block text-sm font-medium text-slate-700 mb-2">Password <span class="text-red-500">*</span></label>
-                    <div class="relative">
-                        <svg class="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
-                        </svg>
-                        <input type="password" id="password" class="input-field w-full pl-12 pr-12 py-3 rounded-xl border-2 border-slate-200 focus:border-blue-500 focus:outline-none bg-white" placeholder="Enter password">
-                        <button type="button" onclick="App.togglePassword()" class="absolute right-4 top-1/2 transform -translate-y-1/2 text-slate-400 hover:text-slate-600">
-                            <svg id="eyeIcon" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
-                            </svg>
-                        </button>
+                <p class="small opacity-75 mb-3">Locked since: <span id="lockoutTime"></span></p>
+                <button onclick="App.unlockAccount()" class="btn btn-light text-danger fw-semibold px-4 py-2 rounded-3">
+                    <i class="bi bi-unlock me-2"></i>Lockout Override (Demo)
+                </button>
+            </div>
+
+            <!-- Permanent Lockout Overlay -->
+            <div id="permanentLockoutOverlay" class="permanent-lockout-overlay d-none">
+                <i class="bi bi-exclamation-triangle-fill display-1 mb-4 text-warning"></i>
+                <h3 class="fw-bold mb-3 display-6">Account Permanently Locked</h3>
+                <p class="mb-4 h5">Contact IT Support: 0917-888-1886</p>
+                <p class="small opacity-75 mb-3">Locked since: <span id="permanentLockoutTime"></span></p>
+                <button onclick="App.unlockAccount()" class="btn btn-light text-danger fw-semibold px-4 py-2 rounded-3">
+                    <i class="bi bi-unlock me-2"></i>IT Unlock (Demo)
+                </button>
+            </div>
+
+            <!-- Logo Section -->
+            <div class="text-center mb-4">
+                <div class="logo-box">
+                    <i class="bi bi-boxes"></i>
+                </div>
+                <h1 class="display-6 fw-bold text-white mb-1">StockSense PH</h1>
+                <p class="text-white-50">Enterprise Inventory Management</p>
+            </div>
+
+            <!-- Login Card -->
+            <div class="glass-card">
+                <div id="errorContainer" class="alert alert-danger d-none mb-4" role="alert">
+                    <div class="d-flex align-items-start">
+                        <i class="bi bi-exclamation-circle-fill me-2 mt-1"></i>
+                        <div class="flex-grow-1">
+                            <span id="errorText"></span>
+                            <div id="attemptsWarning" class="small fw-bold mt-2 pt-2 border-top border-danger d-none">
+                            </div>
+                        </div>
                     </div>
                 </div>
 
-                <!-- Password strength indicator -->
-                <div class="mt-2 flex gap-1">
-                    <div id="strengthBar" class="password-strength flex-1 bg-slate-200"></div>
+                <div id="successContainer" class="alert alert-success d-none mb-4 d-flex align-items-center"
+                    role="alert">
+                    <i class="bi bi-check-circle-fill me-2"></i>
+                    <span id="successText"></span>
                 </div>
-                <p id="strengthText" class="mt-1 text-xs text-slate-500"></p>
 
-                <button type="submit" id="loginBtn" class="w-full bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-semibold py-3 rounded-xl hover:from-blue-700 hover:to-indigo-700 transform hover:scale-[1.02] transition-all duration-200 shadow-lg flex items-center justify-center gap-2 disabled:opacity-50">
-                    <svg id="spinner" class="hidden w-5 h-5 animate-spin" fill="none" viewBox="0 0 24 24">
-                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                    </svg>
-                    <span id="btnText">Secure Login</span>
-                </button>
-            </form>
+                <form id="loginForm">
+                    <div class="mb-4">
+                        <label class="form-label fw-medium text-secondary">Username <span
+                                class="text-danger">*</span></label>
+                        <div class="input-group">
+                            <span class="input-group-text bg-white border-end-0">
+                                <i class="bi bi-person text-secondary"></i>
+                            </span>
+                            <input type="text" id="username" class="form-control border-start-0 input-field"
+                                placeholder="Enter username" required>
+                        </div>
+                    </div>
 
-            <!-- Test Buttons -->
-            <div class="mt-4 flex gap-2 justify-center">
-                <button onclick="testAdminLogin()" class="text-xs bg-blue-600 text-white px-3 py-1 rounded hover:bg-blue-700">
-                    Test Admin
-                </button>
-                <button onclick="testStaffLogin()" class="text-xs bg-green-600 text-white px-3 py-1 rounded hover:bg-green-700">
-                    Test Staff
-                </button>
-                <button onclick="clearAllData()" class="text-xs bg-red-600 text-white px-3 py-1 rounded hover:bg-red-700">
-                    Reset
-                </button>
-            </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-medium text-secondary">Password <span
+                                class="text-danger">*</span></label>
+                        <div class="input-group">
+                            <span class="input-group-text bg-white border-end-0">
+                                <i class="bi bi-lock text-secondary"></i>
+                            </span>
+                            <input type="password" id="password"
+                                class="form-control border-start-0 border-end-0 input-field"
+                                placeholder="Enter password" required>
+                            <button class="btn btn-outline-secondary border-start-0 bg-white" type="button"
+                                onclick="App.togglePassword()">
+                                <i id="eyeIcon" class="bi bi-eye"></i>
+                            </button>
+                        </div>
+                    </div>
 
-            <!-- Debug Panel -->
-            <div id="debugPanel" class="debug-panel mt-4">
-                <div class="text-yellow-400 font-bold mb-1">🔍 Debug:</div>
-                <div id="debugContent">Ready...</div>
-            </div>
+                    <!-- Password strength indicator -->
+                    <div class="mt-2 d-flex gap-1">
+                        <div id="strengthBar" class="password-strength flex-grow-1"></div>
+                    </div>
+                    <p id="strengthText" class="mt-1 small text-secondary"></p>
 
-            <div class="mt-4 text-center text-xs text-slate-400">
-                <p>Demo: admin / Admin@1234567890abc | staff / Staff@1234567890xyz</p>
-                <p class="text-xs text-amber-300 mt-1">Password must be at least 16 characters</p>
+                    <button type="submit" id="loginBtn"
+                        class="btn btn-primary w-100 py-3 fw-semibold rounded-3 d-flex align-items-center justify-content-center gap-2">
+                        <span id="spinner" class="spinner-border spinner-border-sm d-none" role="status"
+                            aria-hidden="true"></span>
+                        <span id="btnText">Secure Login</span>
+                    </button>
+                </form>
+
+                <!-- Test Buttons -->
+                <div class="d-flex gap-2 justify-content-center mt-4">
+                    <button onclick="testAdminLogin()" class="btn btn-sm btn-primary">
+                        Test Admin
+                    </button>
+                    <button onclick="testStaffLogin()" class="btn btn-sm btn-success">
+                        Test Staff
+                    </button>
+                    <button onclick="clearAllData()" class="btn btn-sm btn-danger">
+                        Reset
+                    </button>
+                </div>
+
+                <div class="mt-4 text-center small text-secondary">
+                    <p class="mb-1">Demo: admin / Admin@1234567890abc | staff / Staff@1234567890xyz</p>
+                    <p class="small text-warning mt-2">Password must be at least 16 characters</p>
+                </div>
             </div>
         </div>
     </div>
 
     <script>
         // ==========================================
-        // BUILT-IN API (No external file needed)
+        // STOCKSENSE API - Built-in
         // ==========================================
-        
-        // Debug function
-        function addDebug(msg) {
-            const debug = document.getElementById('debugContent');
-            const time = new Date().toLocaleTimeString();
-            debug.innerHTML = `<div>[${time}] ${msg}</div>` + debug.innerHTML;
-            if (debug.children.length > 5) {
-                debug.removeChild(debug.lastChild);
-            }
-        }
 
-        addDebug('✅ Built-in API initializing...');
+        const StockSenseAPI = (function () {
+            console.log('🔥 StockSense API initializing...');
 
-        // Users database
-        const users = [
-            { username: 'admin', password: 'Admin@1234567890abc', role: 'admin', employeeId: 'EMP-2024-001', name: 'Admin User' },
-            { username: 'staff', password: 'Staff@1234567890xyz', role: 'staff', employeeId: 'EMP-2024-002', name: 'Staff User' }
-        ];
+            // Users database
+            const users = [
+                { username: 'admin', password: 'Admin@1234567890abc', role: 'admin', employeeId: 'EMP-2024-001', name: 'Admin User' },
+                { username: 'staff', password: 'Staff@1234567890xyz', role: 'staff', employeeId: 'EMP-2024-002', name: 'Staff User' }
+            ];
 
-        // Security state
-        let security = {
-            failures: 0,
-            stage: 0,
-            lockedUntil: null,
-            permanentlyLocked: false,
-            permanentLockTime: null
-        };
+            // Security state
+            let security = {
+                failures: 0,
+                stage: 0,
+                lockedUntil: null,
+                permanentlyLocked: false,
+                permanentLockTime: null
+            };
 
-        // Load from storage
-        function loadFromStorage() {
-            const saved = localStorage.getItem('stockSenseSecurity');
-            if (saved) {
-                try {
-                    security = JSON.parse(saved);
-                } catch (e) {}
-            }
-        }
-
-        function saveToStorage() {
-            localStorage.setItem('stockSenseSecurity', JSON.stringify(security));
-        }
-
-        loadFromStorage();
-
-        // Create API object
-        const StockSenseAPI = {
-            validateUser: function(username, password) {
-                return users.find(u => u.username === username && u.password === password);
-            },
-
-            checkLocked: function() {
-                if (security.permanentlyLocked) {
-                    return { locked: true, permanent: true, lockTime: security.permanentLockTime };
+            // Load from storage
+            function loadFromStorage() {
+                const saved = localStorage.getItem('stockSenseSecurity');
+                if (saved) {
+                    try {
+                        security = JSON.parse(saved);
+                        console.log('Loaded security state:', security);
+                    } catch (e) {
+                        console.error('Failed to load security data');
+                    }
                 }
-                if (!security.lockedUntil) return { locked: false };
-                if (new Date() < new Date(security.lockedUntil)) {
-                    return { locked: true, permanent: false, stage: security.stage, lockUntil: security.lockedUntil };
-                }
-                security.lockedUntil = null;
-                security.stage = 0;
-                saveToStorage();
-                return { locked: false };
-            },
+            }
 
-            recordFailure: function() {
-                security.failures++;
-                
-                if (security.failures >= 6) {
-                    security.permanentlyLocked = true;
-                    security.permanentLockTime = new Date().toISOString();
-                    security.stage = 4;
-                    security.lockedUntil = null;
+            // Initialize by loading from storage
+            loadFromStorage();
+
+            function saveToStorage() {
+                localStorage.setItem('stockSenseSecurity', JSON.stringify(security));
+                console.log('Saved security state:', security);
+            }
+
+            return {
+                validateUser: function (username, password) {
+                    return users.find(u => u.username === username && u.password === password);
+                },
+
+                getSecurityState: function () {
+                    return { ...security };
+                },
+
+                checkLocked: function () {
+                    // Check permanent lock first
+                    if (security.permanentlyLocked) {
+                        return {
+                            locked: true,
+                            permanent: true,
+                            lockTime: security.permanentLockTime
+                        };
+                    }
+
+                    // Check temporary lock
+                    if (security.lockedUntil) {
+                        const now = new Date();
+                        const lockTime = new Date(security.lockedUntil);
+
+                        if (now < lockTime) {
+                            // Calculate remaining time
+                            const remainingMs = lockTime - now;
+                            const remainingSec = Math.floor(remainingMs / 1000);
+                            const minutes = Math.floor(remainingSec / 60);
+                            const seconds = remainingSec % 60;
+
+                            return {
+                                locked: true,
+                                permanent: false,
+                                stage: security.stage,
+                                lockUntil: security.lockedUntil,
+                                remaining: {
+                                    ms: remainingMs,
+                                    seconds: remainingSec,
+                                    minutes: minutes,
+                                    seconds: seconds,
+                                    display: `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`
+                                }
+                            };
+                        } else {
+                            // Lock expired, clear it
+                            security.lockedUntil = null;
+                            security.stage = 0;
+                            // Don't reset failures count when lock expires
+                            // Only clear the lock
+                            saveToStorage();
+                        }
+                    }
+
+                    return { locked: false };
+                },
+
+                recordFailure: function () {
+                    security.failures++;
+                    console.log('Failed attempts:', security.failures);
+
+                    if (security.failures >= 6) {
+                        security.permanentlyLocked = true;
+                        security.permanentLockTime = new Date().toISOString();
+                        security.stage = 4;
+                        security.lockedUntil = null;
+                        saveToStorage();
+                        return {
+                            locked: true,
+                            permanent: true,
+                            failures: security.failures,
+                            lockTime: security.permanentLockTime
+                        };
+                    }
+
+                    if (security.failures >= 3 && security.failures <= 5) {
+                        security.stage = security.failures - 2;
+                        // Stage 1: 30 seconds, Stage 2: 30 seconds, Stage 3: 60 seconds
+                        const minutes = [0.5, 0.5, 1][security.stage - 1];
+                        const lockTime = new Date(Date.now() + minutes * 60 * 1000);
+                        security.lockedUntil = lockTime.toISOString();
+                        saveToStorage();
+
+                        // Calculate remaining time for immediate display
+                        const remainingMs = lockTime - new Date();
+                        const remainingSec = Math.floor(remainingMs / 1000);
+                        const mins = Math.floor(remainingSec / 60);
+                        const secs = remainingSec % 60;
+
+                        return {
+                            locked: true,
+                            permanent: false,
+                            stage: security.stage,
+                            lockUntil: security.lockedUntil,
+                            minutes: minutes,
+                            failures: security.failures,
+                            remaining: {
+                                minutes: mins,
+                                seconds: secs,
+                                display: `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`
+                            }
+                        };
+                    }
+
                     saveToStorage();
-                    return { locked: true, permanent: true, failures: security.failures, lockTime: security.permanentLockTime };
-                }
-                
-                if (security.failures >= 3 && security.failures <= 5) {
-                    security.stage = security.failures - 2;
-                    const minutes = [0.5, 0.5, 1][security.stage - 1];
-                    const lockTime = new Date(Date.now() + minutes * 60 * 1000);
-                    security.lockedUntil = lockTime.toISOString();
+                    return { locked: false, failures: security.failures };
+                },
+
+                resetSecurity: function () {
+                    security = {
+                        failures: 0,
+                        stage: 0,
+                        lockedUntil: null,
+                        permanentlyLocked: false,
+                        permanentLockTime: null
+                    };
                     saveToStorage();
-                    return { locked: true, permanent: false, stage: security.stage, lockUntil: security.lockedUntil, minutes: minutes, failures: security.failures };
+                    console.log('Security reset');
+                },
+
+                createSession: function (user) {
+                    const session = {
+                        username: user.username,
+                        role: user.role,
+                        employeeId: user.employeeId,
+                        name: user.name,
+                        loginTime: new Date().toISOString()
+                    };
+                    sessionStorage.setItem('stockSenseUser', JSON.stringify(session));
+                    return session;
+                },
+
+                getSession: function () {
+                    const session = sessionStorage.getItem('stockSenseUser');
+                    return session ? JSON.parse(session) : null;
+                },
+
+                destroySession: function () {
+                    sessionStorage.removeItem('stockSenseUser');
+                },
+
+                formatCurrency: function (amount) {
+                    return '₱' + amount.toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
                 }
-                
-                saveToStorage();
-                return { locked: false, failures: security.failures };
-            },
+            };
+        })();
 
-            resetSecurity: function() {
-                security = { failures: 0, stage: 0, lockedUntil: null, permanentlyLocked: false, permanentLockTime: null };
-                saveToStorage();
-            },
-
-            createSession: function(user) {
-                const session = {
-                    username: user.username,
-                    role: user.role,
-                    employeeId: user.employeeId,
-                    name: user.name,
-                    loginTime: new Date().toISOString()
-                };
-                sessionStorage.setItem('stockSenseUser', JSON.stringify(session));
-                return session;
-            },
-
-            getSession: function() {
-                const session = sessionStorage.getItem('stockSenseUser');
-                return session ? JSON.parse(session) : null;
-            },
-
-            destroySession: function() {
-                sessionStorage.removeItem('stockSenseUser');
-            },
-
-            getFailureMessage: function(failures) {
-                const messages = {
-                    1: 'Failed attempts: 1/5 before permanent lock',
-                    2: 'Failed attempts: 2/5 before permanent lock',
-                    3: 'Failed attempts: 3/5 - 2 more until permanent lock',
-                    4: 'Failed attempts: 4/5 - 1 more until final warning',
-                    5: 'WARNING: Next attempt will permanently lock your account!',
-                    6: 'Account permanently locked. Contact IT support.'
-                };
-                return messages[failures] || `Failed attempts: ${failures}/5`;
-            }
-        };
-
-        // Make it globally available
         window.StockSenseAPI = StockSenseAPI;
-        addDebug('✅ Built-in API ready');
 
         // ==================== APPLICATION ====================
         const App = {
             countdownInterval: null,
-            
-            init: function() {
-                addDebug('App initializing...');
-                document.getElementById('loginForm').addEventListener('submit', this.handleLogin.bind(this));
-                
-                // Check if already locked
+
+            init: function () {
+                console.log('App initializing...');
+
+                // Add form submit handler
+                const loginForm = document.getElementById('loginForm');
+                if (loginForm) {
+                    loginForm.addEventListener('submit', this.handleLogin.bind(this));
+                }
+
+                // Check lock status on page load
+                this.checkInitialLockStatus();
+            },
+
+            checkInitialLockStatus: function () {
                 const lockStatus = StockSenseAPI.checkLocked();
+                console.log('Initial lock status:', lockStatus);
+
                 if (lockStatus.locked) {
                     if (lockStatus.permanent) {
                         this.showPermanentLockout(lockStatus.lockTime);
                     } else if (lockStatus.lockUntil) {
-                        this.showLockout(lockStatus.lockUntil, lockStatus.stage, 0.5);
+                        this.showLockout(
+                            lockStatus.lockUntil,
+                            lockStatus.stage,
+                            null,
+                            lockStatus.remaining
+                        );
                     }
+                } else {
+                    // Make sure overlays are hidden
+                    this.hideAllOverlays();
                 }
             },
-            
-            togglePassword: function() {
+
+            hideAllOverlays: function () {
+                document.getElementById('lockoutOverlay').classList.add('d-none');
+                document.getElementById('permanentLockoutOverlay').classList.add('d-none');
+                if (this.countdownInterval) {
+                    clearInterval(this.countdownInterval);
+                    this.countdownInterval = null;
+                }
+            },
+
+            togglePassword: function () {
                 const input = document.getElementById('password');
                 const icon = document.getElementById('eyeIcon');
                 if (input.type === 'password') {
                     input.type = 'text';
-                    icon.innerHTML = '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21"/>';
+                    icon.classList.remove('bi-eye');
+                    icon.classList.add('bi-eye-slash');
                 } else {
                     input.type = 'password';
-                    icon.innerHTML = '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>';
+                    icon.classList.remove('bi-eye-slash');
+                    icon.classList.add('bi-eye');
                 }
             },
-            
-            handleLogin: async function(e) {
+
+            handleLogin: async function (e) {
                 e.preventDefault();
-                
+
                 const username = document.getElementById('username').value.trim();
                 const password = document.getElementById('password').value;
-                
-                addDebug(`Login attempt - User: ${username}`);
-                
-                document.getElementById('errorContainer').classList.add('hidden');
-                
+
+                // Hide previous error/success messages
+                document.getElementById('errorContainer').classList.add('d-none');
+                document.getElementById('successContainer').classList.add('d-none');
+                document.getElementById('attemptsWarning').classList.add('d-none');
+
                 if (!username || !password) {
                     document.getElementById('errorText').textContent = 'Please enter both username and password';
-                    document.getElementById('errorContainer').classList.remove('hidden');
+                    document.getElementById('errorContainer').classList.remove('d-none');
                     return;
                 }
 
                 // Check password length (16 minimum)
                 if (password.length < 16) {
                     document.getElementById('errorText').textContent = 'Password must be at least 16 characters';
-                    document.getElementById('errorContainer').classList.remove('hidden');
+                    document.getElementById('errorContainer').classList.remove('d-none');
                     return;
                 }
 
@@ -383,52 +563,71 @@
                     if (lockStatus.permanent) {
                         this.showPermanentLockout(lockStatus.lockTime);
                     } else if (lockStatus.lockUntil) {
-                        this.showLockout(lockStatus.lockUntil, lockStatus.stage, 0.5);
+                        this.showLockout(
+                            lockStatus.lockUntil,
+                            lockStatus.stage,
+                            null,
+                            lockStatus.remaining
+                        );
                     }
                     return;
                 }
 
-                document.getElementById('spinner').classList.remove('hidden');
+                // Show loading spinner
+                document.getElementById('spinner').classList.remove('d-none');
                 document.getElementById('btnText').textContent = 'Verifying...';
-                
+                document.getElementById('loginBtn').disabled = true;
+
                 await new Promise(r => setTimeout(r, 500));
 
                 // Validate user
                 const user = StockSenseAPI.validateUser(username, password);
-                addDebug(`User found: ${user ? 'YES' : 'NO'}`);
-                
+
                 if (!user) {
                     const result = StockSenseAPI.recordFailure();
+
                     document.getElementById('errorText').textContent = 'Wrong credentials. Please try again.';
-                    document.getElementById('errorContainer').classList.remove('hidden');
-                    
+                    document.getElementById('errorContainer').classList.remove('d-none');
+
                     if (result.failures) {
-                        document.getElementById('attemptsWarning').textContent = StockSenseAPI.getFailureMessage(result.failures);
-                        document.getElementById('attemptsWarning').classList.remove('hidden');
+                        const attemptsWarning = document.getElementById('attemptsWarning');
+                        if (result.failures === 5) {
+                            attemptsWarning.textContent = '⚠️ WARNING: Next attempt will permanently lock your account!';
+                        } else if (result.failures === 6) {
+                            attemptsWarning.textContent = '❌ Account permanently locked. Contact IT support.';
+                        } else {
+                            attemptsWarning.textContent = `Failed attempts: ${result.failures}/5`;
+                        }
+                        attemptsWarning.classList.remove('d-none');
                     }
-                    
+
                     if (result.locked) {
                         if (result.permanent) {
                             this.showPermanentLockout(result.lockTime);
                         } else if (result.lockUntil) {
-                            this.showLockout(result.lockUntil, result.stage, result.minutes);
+                            this.showLockout(
+                                result.lockUntil,
+                                result.stage,
+                                result.minutes,
+                                result.remaining
+                            );
                         }
                     }
-                    
-                    document.getElementById('spinner').classList.add('hidden');
+
+                    // Reset button
+                    document.getElementById('spinner').classList.add('d-none');
                     document.getElementById('btnText').textContent = 'Secure Login';
+                    document.getElementById('loginBtn').disabled = false;
                     return;
                 }
 
                 // Success!
-                addDebug(`✅ Login successful: ${user.role}`);
-                
                 StockSenseAPI.resetSecurity();
                 StockSenseAPI.createSession(user);
-                
+
                 document.getElementById('successText').textContent = 'Login successful! Redirecting...';
-                document.getElementById('successContainer').classList.remove('hidden');
-                
+                document.getElementById('successContainer').classList.remove('d-none');
+
                 // Redirect based on role
                 setTimeout(() => {
                     if (user.role === 'staff') {
@@ -438,41 +637,67 @@
                     }
                 }, 1000);
             },
-            
-            showLockout: function(lockUntil, stage, minutes) {
-                if (this.countdownInterval) clearInterval(this.countdownInterval);
-                
-                document.getElementById('lockoutOverlay').classList.remove('hidden');
+
+            showLockout: function (lockUntil, stage, minutes, remaining) {
+                console.log('Showing lockout:', { lockUntil, stage, minutes, remaining });
+
+                // Clear any existing interval
+                if (this.countdownInterval) {
+                    clearInterval(this.countdownInterval);
+                }
+
+                // Hide permanent overlay, show temporary
+                document.getElementById('permanentLockoutOverlay').classList.add('d-none');
+                document.getElementById('lockoutOverlay').classList.remove('d-none');
+
+                // Update lockout info
                 document.getElementById('currentStage').textContent = stage;
                 document.getElementById('lockoutTime').textContent = new Date(lockUntil).toLocaleString();
-                
-                const totalSeconds = Math.floor(minutes * 60);
-                const timer = document.getElementById('countdownTimer');
-                timer.textContent = `${Math.floor(totalSeconds/60).toString().padStart(2,'0')}:${(totalSeconds%60).toString().padStart(2,'0')}`;
-                
+
+                // Set initial timer display
+                if (remaining && remaining.display) {
+                    document.getElementById('countdownTimer').textContent = remaining.display;
+                }
+
+                // Update timer every second
                 this.countdownInterval = setInterval(() => {
-                    const remaining = new Date(lockUntil) - new Date();
-                    if (remaining <= 0) {
+                    const now = new Date();
+                    const lockTime = new Date(lockUntil);
+                    const remainingMs = lockTime - now;
+
+                    if (remainingMs <= 0) {
+                        // Lock expired - hide overlay but keep failures count
                         clearInterval(this.countdownInterval);
-                        document.getElementById('lockoutOverlay').classList.add('hidden');
+                        document.getElementById('lockoutOverlay').classList.add('d-none');
+
+                        // Don't reset security, just let the next attempt handle it
+                        // The lock will be cleared in checkLocked() on next attempt
                     } else {
-                        const secs = Math.floor(remaining / 1000);
-                        timer.textContent = `${Math.floor(secs/60).toString().padStart(2,'0')}:${(secs%60).toString().padStart(2,'0')}`;
+                        const remainingSec = Math.floor(remainingMs / 1000);
+                        const mins = Math.floor(remainingSec / 60);
+                        const secs = remainingSec % 60;
+                        document.getElementById('countdownTimer').textContent =
+                            `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
                     }
                 }, 1000);
             },
-            
-            showPermanentLockout: function(lockTime) {
-                document.getElementById('permanentLockoutTime').textContent = new Date(lockTime).toLocaleString();
-                document.getElementById('permanentLockoutOverlay').classList.remove('hidden');
+
+            showPermanentLockout: function (lockTime) {
+                console.log('Showing permanent lockout:', lockTime);
+
+                // Hide temporary overlay, show permanent
+                document.getElementById('lockoutOverlay').classList.add('d-none');
+                document.getElementById('permanentLockoutOverlay').classList.remove('d-none');
+
+                // Update lock time
+                document.getElementById('permanentLockoutTime').textContent =
+                    lockTime ? new Date(lockTime).toLocaleString() : 'Just now';
             },
-            
-            unlockAccount: function() {
+
+            unlockAccount: function () {
+                console.log('Unlocking account...');
                 StockSenseAPI.resetSecurity();
-                document.getElementById('lockoutOverlay').classList.add('hidden');
-                document.getElementById('permanentLockoutOverlay').classList.add('hidden');
-                if (this.countdownInterval) clearInterval(this.countdownInterval);
-                addDebug('Account unlocked');
+                this.hideAllOverlays();
             }
         };
 
@@ -494,16 +719,21 @@
             sessionStorage.clear();
             document.getElementById('username').value = '';
             document.getElementById('password').value = '';
-            document.getElementById('debugContent').innerHTML = 'Ready...';
-            addDebug('All data cleared');
+            document.getElementById('errorContainer').classList.add('d-none');
+            document.getElementById('successContainer').classList.add('d-none');
+            App.hideAllOverlays();
+            console.log('All data cleared');
         }
 
         // Password strength checker
-        document.getElementById('password').addEventListener('input', function() {
+        document.getElementById('password').addEventListener('input', function () {
             const password = this.value;
             const bar = document.getElementById('strengthBar');
             const text = document.getElementById('strengthText');
-            
+
+            // Reset classes
+            bar.className = 'password-strength flex-grow-1';
+
             let strength = 0;
             if (password.length >= 16) strength++;
             if (password.length >= 20) strength++;
@@ -511,24 +741,31 @@
             if (/[0-9]/.test(password)) strength++;
             if (/[!@#$%^&*]/.test(password)) strength++;
 
-            bar.className = 'password-strength flex-1';
-            if (strength <= 2) {
+            if (password.length === 0) {
+                bar.classList.remove('strength-weak', 'strength-medium', 'strength-strong');
+                text.textContent = '';
+            } else if (strength <= 2) {
                 bar.classList.add('strength-weak');
                 text.textContent = 'Weak - Need 16+ chars with uppercase, number, special';
-                text.className = 'mt-1 text-xs text-red-500';
+                text.className = 'mt-1 small text-danger';
             } else if (strength <= 3) {
                 bar.classList.add('strength-medium');
-                text.textContent = 'Medium';
-                text.className = 'mt-1 text-xs text-amber-500';
+                text.textContent = 'Medium - Good but could be stronger';
+                text.className = 'mt-1 small text-warning';
             } else {
                 bar.classList.add('strength-strong');
-                text.textContent = 'Strong';
-                text.className = 'mt-1 text-xs text-emerald-600';
+                text.textContent = 'Strong - Excellent password';
+                text.className = 'mt-1 small text-success';
             }
         });
 
-        // Initialize
-        App.init();
+        // Initialize the app when the page loads
+        document.addEventListener('DOMContentLoaded', function () {
+            App.init();
+        });
     </script>
+    <!-- Bootstrap JS Bundle with Popper -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 </body>
+
 </html>
