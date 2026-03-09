@@ -307,16 +307,119 @@ const StockSenseAPI = (function () {
             return `<span class="badge ${colors[status] || 'bg-secondary bg-opacity-10 text-secondary'} px-3 py-2 rounded-pill">${status}</span>`;
         },
 
-        getStatusClass: function (stock) {
+        getStatusClass: function (stock, reorderLevel = 20) {
             if (stock <= 0) return 'status-outofstock';
-            if (stock < 20) return 'status-lowstock';
+            if (stock < reorderLevel) return 'status-lowstock';
             return 'status-instock';
         },
 
-        getStatusText: function (stock) {
+        getStatusText: function (stock, reorderLevel = 20) {
             if (stock <= 0) return 'Out of Stock';
-            if (stock < 20) return 'Low Stock';
+            if (stock < reorderLevel) return 'Low Stock';
             return 'In Stock';
+        },
+
+        // ===== NOTIFICATIONS & ALERTS =====
+        showNotification: function (title, message, type = 'primary') {
+            const container = document.getElementById('toastContainer');
+            if (!container) {
+                console.warn('Toast container not found');
+                return;
+            }
+
+            const toastId = 'toast-' + Date.now();
+            const icon = type === 'danger' ? 'bi-exclamation-octagon' :
+                type === 'warning' ? 'bi-exclamation-triangle' :
+                    'bi-info-circle';
+
+            const html = `
+                <div id="${toastId}" class="toast" role="alert" aria-live="assertive" aria-atomic="true">
+                    <div class="toast-header border-0 ${type === 'danger' ? 'bg-danger text-white' : (type === 'warning' ? 'bg-warning text-dark' : 'bg-primary text-white')}">
+                        <i class="bi ${icon} me-2"></i>
+                        <strong class="me-auto">${title}</strong>
+                        <button type="button" class="btn-close ${type !== 'warning' ? 'btn-close-white' : ''}" data-bs-dismiss="modal" data-bs-dismiss="toast" aria-label="Close"></button>
+                    </div>
+                    <div class="toast-body bg-white shadow-sm">
+                        ${message}
+                    </div>
+                </div>
+            `;
+
+            container.insertAdjacentHTML('beforeend', html);
+            const toastEl = document.getElementById(toastId);
+            const toast = new bootstrap.Toast(toastEl, { delay: 5000 });
+            toast.show();
+
+            // Cleanup after hidden
+            toastEl.addEventListener('hidden.bs.toast', () => {
+                toastEl.remove();
+            });
+        },
+
+        checkLowStock: async function () {
+            try {
+                const lowStockItems = await this.getLowStockItems();
+                if (lowStockItems.length > 0) {
+                    const message = `
+                        <div class="small">
+                            <p class="mb-2">The following items are running low:</p>
+                            <ul class="mb-0 ps-3">
+                                ${lowStockItems.slice(0, 3).map(i => `<li><strong>${i.name}</strong> (${i.stock} left)</li>`).join('')}
+                                ${lowStockItems.length > 3 ? `<li>...and ${lowStockItems.length - 3} more</li>` : ''}
+                            </ul>
+                            <a href="inventory.html" class="btn btn-sm btn-outline-primary mt-2 w-100">View Inventory</a>
+                        </div>
+                    `;
+                    this.showNotification('Low Stock Alert', message, 'warning');
+                }
+                this.updateNotificationUI(lowStockItems);
+            } catch (err) {
+                console.error("Failed to check low stock:", err);
+            }
+        },
+
+        getLowStockItems: async function () {
+            const inventory = await this.getInventory();
+            return inventory.filter(item =>
+                item.stock < item.reorderLevel &&
+                item.status !== 'inactive' &&
+                item.status !== 'discontinued'
+            );
+        },
+
+        updateNotificationUI: function (lowStockItems) {
+            const badges = document.querySelectorAll('.noti-badge');
+            const list = document.getElementById('notificationList');
+            const count = lowStockItems.length;
+
+            badges.forEach(badge => {
+                badge.textContent = count;
+                badge.style.display = count > 0 ? 'inline-block' : 'none';
+            });
+
+            if (list) {
+                if (count === 0) {
+                    list.innerHTML = '<div class="p-3 text-center text-secondary small">No new notifications</div>';
+                } else {
+                    list.innerHTML = lowStockItems.map(item => `
+                        <a href="inventory.html" class="dropdown-item p-3 border-bottom">
+                            <div class="d-flex align-items-center gap-3">
+                                <div class="bg-warning bg-opacity-10 text-warning rounded-circle p-2">
+                                    <i class="bi bi-exclamation-triangle"></i>
+                                </div>
+                                <div>
+                                    <p class="mb-0 fw-bold small">${item.name}</p>
+                                    <p class="mb-0 text-secondary tiny" style="font-size: 0.75rem;">Only ${item.stock} left in stock</p>
+                                </div>
+                            </div>
+                        </a>
+                    `).join('') + `
+                        <div class="p-2 text-center">
+                            <a href="inventory.html" class="btn btn-link btn-sm text-primary text-decoration-none">View All Inventory</a>
+                        </div>
+                    `;
+                }
+            }
         }
     };
 })();

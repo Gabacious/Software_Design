@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -16,6 +17,53 @@
             margin: 0;
             padding: 0;
         }
+
+        #mainContent {
+            animation: fadeIn 0.5s ease-in-out;
+        }
+
+        .admin-only,
+        .staff-only {
+            display: none !important;
+        }
+
+        body.role-admin .admin-only {
+            display: block !important;
+        }
+
+        body.role-admin li.admin-only {
+            display: list-item !important;
+        }
+
+        body.role-staff .staff-only {
+            display: block !important;
+        }
+
+        body.role-staff li.staff-only {
+            display: list-item !important;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(5px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .noti-badge {
+            padding: 0.35em 0.5em;
+            line-height: 1;
+        }
+
+        .dropdown-toggle::after {
+            display: none !important;
+        }
+
         .nav-link-custom {
             position: relative;
             color: #64748b;
@@ -24,12 +72,15 @@
             margin: 0 0.75rem;
             text-decoration: none;
         }
+
         .nav-link-custom:hover {
             color: #0d6efd;
         }
+
         .nav-link-custom.active {
             color: #0d6efd;
         }
+
         .nav-link-custom.active::after {
             content: '';
             position: absolute;
@@ -39,45 +90,57 @@
             height: 2px;
             background: #0d6efd;
         }
+
         /* Staff theme overrides */
         .staff-theme .nav-link-custom:hover {
-            color: #0f5132 ;
+            color: #0f5132;
         }
+
         .staff-theme .nav-link-custom.active {
             color: #198754;
         }
+
         .staff-theme .nav-link-custom.active::after {
             background: #198754;
         }
+
         .staff-theme .btn-primary {
             background-color: #198754;
             border-color: #198754;
         }
+
         .staff-theme .btn-primary:hover {
             background-color: #146c43;
             border-color: #146c43;
         }
+
         .staff-theme .text-primary {
             color: #198754 !important;
         }
+
         .staff-theme .bg-primary {
             background-color: #198754 !important;
         }
+
         .staff-theme .bg-primary.bg-gradient {
             background: linear-gradient(135deg, #198754 0%, #146c43 100%) !important;
         }
+
         .security-banner {
             padding: 0.5rem 1rem;
             font-size: 0.875rem;
         }
+
         .admin-banner {
             background: linear-gradient(135deg, #0b5e9e 0%, #084298 100%);
             color: white;
         }
+
         .staff-banner {
             background: linear-gradient(135deg, #198754 0%, #146c43 100%);
             color: white;
         }
+
         .stat-icon {
             width: 48px;
             height: 48px;
@@ -89,6 +152,7 @@
         }
     </style>
 </head>
+
 <body>
     <script src="api.js"></script>
     <!-- INLINE API - Everything is self-contained -->
@@ -96,28 +160,89 @@
         // ==========================================
         // STOCKSENSE API - COMPLETE SELF-CONTAINED
         // ==========================================
-        
+
         // Create the API object
-        
-        
+
+
 
         // ==========================================
         // PAGE SPECIFIC CODE
         // ==========================================
-        
+
         // Check session
         const session = StockSenseAPI.getSession();
         console.log('Current session:', session);
-        
+
         if (!session) {
             console.log('No session, redirecting to login');
             window.location.href = 'login.html';
         }
-        
+
         const isAdmin = session ? session.role === 'admin' : false;
         const isStaff = session ? session.role === 'staff' : false;
     </script>
-    
+
+    <!-- Static Security Banner -->
+    <div id="securityBanner" class="security-banner d-flex justify-content-between align-items-center">
+        <div class="d-flex align-items-center gap-2">
+            <i class="bi bi-shield-check fs-5"></i>
+            <span>Sales Management | <span id="userNamePlaceholder">...</span> (<span
+                    id="userRolePlaceholder">...</span>)</span>
+        </div>
+        <button onclick="SalesPage.logout()"
+            class="btn btn-link text-white p-0 text-decoration-none small opacity-75">Logout</button>
+    </div>
+
+    <!-- Static Top Navigation -->
+    <nav id="mainNavbar" class="navbar navbar-expand-lg bg-white shadow-sm sticky-top">
+        <div class="container">
+            <a class="navbar-brand d-flex align-items-center gap-2" href="#" id="brandLink">
+                <div id="brandIcon" class="rounded-3 p-2 text-white">
+                    <i class="bi bi-boxes fs-4"></i>
+                </div>
+                <span class="fw-bold text-dark fs-4">StockSense PH</span>
+            </a>
+
+            <div class="d-flex align-items-center gap-2 ms-auto">
+                <!-- Notification Bell -->
+                <div class="dropdown me-3">
+                    <a class="nav-link-custom position-relative dropdown-toggle p-2" href="#" id="notiDropdown"
+                        role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                        <i class="bi bi-bell fs-5"></i>
+                        <span
+                            class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger noti-badge"
+                            style="font-size: 0.6rem; display: none;">
+                            0
+                        </span>
+                    </a>
+                    <div class="dropdown-menu dropdown-menu-end shadow border-0 py-0 overflow-hidden"
+                        aria-labelledby="notiDropdown" style="width: 280px; margin-top: 1rem;">
+                        <div class="p-2 border-bottom bg-light">
+                            <h6 class="mb-0 fw-bold small px-2">Notifications</h6>
+                        </div>
+                        <div id="notificationList" style="max-height: 300px; overflow-y: auto;">
+                            <div class="p-3 text-center text-secondary small">Loading...</div>
+                        </div>
+                    </div>
+                </div>
+                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                    <span class="navbar-toggler-icon"></span>
+                </button>
+            </div>
+
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ms-auto">
+                    <li class="nav-item"><a href="#" id="dashboardLink" class="nav-link-custom">Dashboard</a></li>
+                    <li class="nav-item"><a href="inventory.html" class="nav-link-custom">Inventory</a></li>
+                    <li class="nav-item"><a href="#" class="nav-link-custom active">Sales</a></li>
+                    <li class="nav-item admin-only"><a href="customers.html" class="nav-link-custom">Customers</a></li>
+                    <li class="nav-item admin-only"><a href="reports.html" class="nav-link-custom">Reports</a></li>
+                    <li class="nav-item admin-only"><a href="settings.html" class="nav-link-custom">Settings</a></li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
     <div id="salesApp">
         <div class="d-flex justify-content-center align-items-center" style="min-height: 400px;">
             <div class="text-center">
@@ -135,29 +260,51 @@
             session: null,
             isAdmin: false,
             isStaff: false,
-            
-            init: async function() {
+
+            init: async function () {
                 console.log('SalesPage.init() called');
-                
+
                 this.session = StockSenseAPI.getSession();
                 console.log('Session in init:', this.session);
-                
+
                 if (!this.session) {
                     console.log('No session, redirecting to login');
                     window.location.href = 'login.html';
                     return;
                 }
-                
+
                 this.isAdmin = this.session.role === 'admin';
                 this.isStaff = this.session.role === 'staff';
-                
+
                 console.log('isAdmin:', this.isAdmin, 'isStaff:', this.isStaff);
                 await this.render();
+                StockSenseAPI.checkLowStock();
             },
-            
-            render: async function() {
+
+            render: async function () {
                 console.log('SalesPage.render() called');
-                
+
+                // Apply role-based classes to body
+                document.body.className = this.isAdmin ? 'role-admin' : 'role-staff';
+
+                // Update session info
+                document.getElementById('userNamePlaceholder').textContent = this.session.name;
+                document.getElementById('userRolePlaceholder').textContent = this.isAdmin ? 'Admin' : 'Staff';
+
+                // Update layout elements
+                const banner = document.getElementById('securityBanner');
+                banner.className = `security-banner ${this.isAdmin ? 'admin-banner' : 'staff-banner'} d-flex justify-content-between align-items-center`;
+
+                const navbar = document.getElementById('mainNavbar');
+                if (this.isStaff) navbar.classList.add('staff-theme');
+
+                const dashboardLink = this.isAdmin ? 'admin-dashboard.html' : 'staff-dashboard.html';
+                document.getElementById('dashboardLink').href = dashboardLink;
+                document.getElementById('brandLink').href = dashboardLink;
+
+                const brandIcon = document.getElementById('brandIcon');
+                brandIcon.className = this.isAdmin ? 'bg-primary bg-gradient rounded-3 p-2 text-white' : 'bg-success bg-gradient rounded-3 p-2 text-white';
+
                 // Get sales data from API
                 const sales = await StockSenseAPI.getSales();
                 console.log('Sales data:', sales);
@@ -165,57 +312,14 @@
                 // Calculate totals
                 const totalSales = sales.length;
                 const totalRevenue = sales.reduce((sum, s) => sum + s.total, 0);
-                const todaySales = sales.filter(s => s.date === '2024-02-28').length;
+                const todaySales = sales.filter(s => s.date === '2024-02-28').length; // Placeholder date
                 const todayRevenue = sales.filter(s => s.date === '2024-02-28').reduce((sum, s) => sum + s.total, 0);
 
-                console.log('Stats:', { totalSales, totalRevenue, todaySales, todayRevenue });
-
-                const dashboardLink = this.isAdmin ? 'admin-dashboard.html' : 'staff-dashboard.html';
-                const bannerClass = this.isAdmin ? 'admin-banner' : 'staff-banner';
                 const themeClass = this.isStaff ? 'staff-theme' : '';
-                const bgGradient = this.isAdmin ? 
-                    'bg-primary bg-gradient' : 
-                    'bg-success bg-gradient';
 
                 const html = `
-                    <!-- Security Banner -->
-                    <div class="security-banner ${bannerClass} d-flex justify-content-between align-items-center">
-                        <div class="d-flex align-items-center gap-2">
-                            <i class="bi bi-shield-check fs-5"></i>
-                            <span>Sales | ${this.session.name} (${this.isAdmin ? 'Admin' : 'Staff'})</span>
-                        </div>
-                        <button onclick="SalesPage.logout()" class="btn btn-link text-white p-0 text-decoration-none small opacity-75">Logout</button>
-                    </div>
-
-                    <!-- Top Navigation -->
-                    <nav class="navbar navbar-expand-lg bg-white shadow-sm sticky-top ${themeClass}">
-                        <div class="container">
-                            <a class="navbar-brand d-flex align-items-center gap-2" href="${dashboardLink}">
-                                <div class="${bgGradient} rounded-3 p-2 text-white">
-                                    <i class="bi bi-boxes fs-4"></i>
-                                </div>
-                                <span class="fw-bold text-dark fs-4">StockSense PH</span>
-                            </a>
-                            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
-                                <span class="navbar-toggler-icon"></span>
-                            </button>
-                            <div class="collapse navbar-collapse" id="navbarNav">
-                                <ul class="navbar-nav ms-auto">
-                                    <li class="nav-item"><a href="${dashboardLink}" class="nav-link-custom">Dashboard</a></li>
-                                    <li class="nav-item"><a href="inventory.html" class="nav-link-custom">Inventory</a></li>
-                                    <li class="nav-item"><a href="#" class="nav-link-custom active">Sales</a></li>
-                                    ${this.isAdmin ? `
-                                        <li class="nav-item"><a href="customers.html" class="nav-link-custom">Customers</a></li>
-                                        <li class="nav-item"><a href="reports.html" class="nav-link-custom">Reports</a></li>
-                                        <li class="nav-item"><a href="settings.html" class="nav-link-custom">Settings</a></li>
-                                    ` : ''}
-                                </ul>
-                            </div>
-                        </div>
-                    </nav>
-
                     <!-- Main Content -->
-                    <main class="container py-4 ${themeClass}">
+                    <main class="container py-4 ${themeClass}" id="mainContent">
                         <!-- Header -->
                         <div class="d-flex justify-content-between align-items-center mb-4">
                             <div>
@@ -333,13 +437,13 @@
                         ` : ''}
                     </main>
                 `;
-                
+
                 console.log('Setting HTML content');
                 document.getElementById('salesApp').innerHTML = html;
                 console.log('Page rendered successfully');
             },
-            
-            logout: async function() {
+
+            logout: async function () {
                 console.log('Logging out...');
                 StockSenseAPI.destroySession();
                 window.location.href = 'login.html';
@@ -347,12 +451,17 @@
         };
 
         // Initialize the page when DOM is ready
-        document.addEventListener('DOMContentLoaded', function() {
+        document.addEventListener('DOMContentLoaded', function () {
             console.log('DOM ready, initializing page...');
             SalesPage.init();
         });
     </script>
+
+    <!-- Notification Toast Container -->
+    <div class="toast-container position-fixed bottom-0 end-0 p-3" style="z-index: 1100" id="toastContainer"></div>
+
     <!-- Bootstrap JS Bundle with Popper -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 </body>
+
 </html>

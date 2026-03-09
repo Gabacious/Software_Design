@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -14,6 +15,32 @@
             font-family: 'Outfit', sans-serif;
             background-color: #f8fafc;
         }
+
+        #mainContent {
+            animation: fadeIn 0.5s ease-in-out;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(5px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .noti-badge {
+            padding: 0.35em 0.5em;
+            line-height: 1;
+        }
+
+        .dropdown-toggle::after {
+            display: none !important;
+        }
+
         .nav-link-custom {
             position: relative;
             color: #64748b;
@@ -21,12 +48,15 @@
             padding: 0.5rem 0.25rem;
             margin: 0 0.75rem;
         }
+
         .nav-link-custom:hover {
             color: #0d6efd;
         }
+
         .nav-link-custom.active {
             color: #0d6efd;
         }
+
         .nav-link-custom.active::after {
             content: '';
             position: absolute;
@@ -36,10 +66,12 @@
             height: 2px;
             background: #0d6efd;
         }
+
         .security-banner {
             background: linear-gradient(135deg, #0b5e9e 0%, #084298 100%);
             color: white;
         }
+
         .stat-icon {
             width: 48px;
             height: 48px;
@@ -49,12 +81,14 @@
             border-radius: 12px;
             font-size: 1.5rem;
         }
+
         .progress-bar-custom {
             height: 8px;
             border-radius: 4px;
         }
     </style>
 </head>
+
 <body>
     <script src="api.js"></script>
     <script>
@@ -69,15 +103,81 @@
         }
         const isAdmin = session ? session.role === 'admin' : false;
     </script>
-    
-    <div id="reportsApp"></div>
+
+    <!-- Static Security Banner -->
+    <div class="security-banner px-4 py-2 small d-flex justify-content-between align-items-center">
+        <div class="d-flex align-items-center gap-2">
+            <i class="bi bi-shield-check fs-5"></i>
+            <span>Reports & Analytics | <span id="userNamePlaceholder">...</span> (Admin)</span>
+        </div>
+        <button onclick="ReportsPage.logout()"
+            class="btn btn-link text-white p-0 text-decoration-none small opacity-75">Logout</button>
+    </div>
+
+    <!-- Static Top Navigation -->
+    <nav class="navbar navbar-expand-lg bg-white shadow-sm sticky-top">
+        <div class="container">
+            <a class="navbar-brand d-flex align-items-center gap-2" href="admin-dashboard.html">
+                <div class="bg-primary bg-gradient rounded-3 p-2 text-white">
+                    <i class="bi bi-boxes fs-4"></i>
+                </div>
+                <span class="fw-bold text-dark fs-4">StockSense PH</span>
+            </a>
+
+            <div class="d-flex align-items-center gap-2 ms-auto">
+                <!-- Notification Bell -->
+                <div class="dropdown me-3">
+                    <a class="nav-link-custom position-relative dropdown-toggle p-2" href="#" id="notiDropdown"
+                        role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                        <i class="bi bi-bell fs-5"></i>
+                        <span
+                            class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger noti-badge"
+                            style="font-size: 0.6rem; display: none;">
+                            0
+                        </span>
+                    </a>
+                    <div class="dropdown-menu dropdown-menu-end shadow border-0 py-0 overflow-hidden"
+                        aria-labelledby="notiDropdown" style="width: 280px; margin-top: 1rem;">
+                        <div class="p-2 border-bottom bg-light">
+                            <h6 class="mb-0 fw-bold small px-2">Notifications</h6>
+                        </div>
+                        <div id="notificationList" style="max-height: 300px; overflow-y: auto;">
+                            <div class="p-3 text-center text-secondary small">Loading...</div>
+                        </div>
+                    </div>
+                </div>
+                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                    <span class="navbar-toggler-icon"></span>
+                </button>
+            </div>
+
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ms-auto">
+                    <li class="nav-item"><a href="admin-dashboard.html" class="nav-link-custom">Dashboard</a></li>
+                    <li class="nav-item"><a href="inventory.html" class="nav-link-custom">Inventory</a></li>
+                    <li class="nav-item"><a href="sales.html" class="nav-link-custom">Sales</a></li>
+                    <li class="nav-item"><a href="customers.html" class="nav-link-custom">Customers</a></li>
+                    <li class="nav-item"><a href="#" class="nav-link-custom active">Reports</a></li>
+                    <li class="nav-item"><a href="settings.html" class="nav-link-custom">Settings</a></li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <div id="reportsApp">
+        <div class="d-flex justify-content-center align-items-center" style="min-height: 400px;">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Loading reports...</span>
+            </div>
+        </div>
+    </div>
 
     <script>
         const ReportsPage = {
             session: null,
             isAdmin: false,
-            
-            init: async function() {
+
+            init: async function () {
                 this.session = StockSenseAPI.getSession();
                 if (!this.session) {
                     window.location.href = 'login.html';
@@ -85,11 +185,12 @@
                 }
                 this.isAdmin = this.session.role === 'admin';
                 await this.render();
+                StockSenseAPI.checkLowStock();
             },
-            
-            render: async function() {
+
+            render: async function () {
                 const stats = await StockSenseAPI.getDashboardStats();
-                
+
                 // Monthly sales data
                 const monthlySales = [
                     { month: 'Jan', sales: 450000, orders: 89 },
@@ -111,43 +212,12 @@
 
                 const maxSales = Math.max(...monthlySales.map(m => m.sales));
 
+                // Update session info
+                document.getElementById('userNamePlaceholder').textContent = this.session.name;
+
                 const html = `
-                    <!-- Security Banner -->
-                    <div class="security-banner px-4 py-2 small d-flex justify-content-between align-items-center">
-                        <div class="d-flex align-items-center gap-2">
-                            <i class="bi bi-shield-check fs-5"></i>
-                            <span>Reports & Analytics | ${this.session.name} (Admin)</span>
-                        </div>
-                        <button onclick="ReportsPage.logout()" class="btn btn-link text-white p-0 text-decoration-none small opacity-75">Logout</button>
-                    </div>
-
-                    <!-- Top Navigation -->
-                    <nav class="navbar navbar-expand-lg bg-white shadow-sm sticky-top">
-                        <div class="container">
-                            <a class="navbar-brand d-flex align-items-center gap-2" href="#">
-                                <div class="bg-primary bg-gradient rounded-3 p-2 text-white">
-                                    <i class="bi bi-boxes fs-4"></i>
-                                </div>
-                                <span class="fw-bold text-dark fs-4">StockSense PH</span>
-                            </a>
-                            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
-                                <span class="navbar-toggler-icon"></span>
-                            </button>
-                            <div class="collapse navbar-collapse" id="navbarNav">
-                                <ul class="navbar-nav ms-auto">
-                                    <li class="nav-item"><a href="admin-dashboard.html" class="nav-link-custom">Dashboard</a></li>
-                                    <li class="nav-item"><a href="inventory.html" class="nav-link-custom">Inventory</a></li>
-                                    <li class="nav-item"><a href="sales.html" class="nav-link-custom">Sales</a></li>
-                                    <li class="nav-item"><a href="customers.html" class="nav-link-custom">Customers</a></li>
-                                    <li class="nav-item"><a href="#" class="nav-link-custom active">Reports</a></li>
-                                    <li class="nav-item"><a href="settings.html" class="nav-link-custom">Settings</a></li>
-                                </ul>
-                            </div>
-                        </div>
-                    </nav>
-
                     <!-- Main Content -->
-                    <main class="container py-4">
+                    <main class="container py-4" id="mainContent">
                         <!-- Header -->
                         <div class="mb-4">
                             <h2 class="fw-bold mb-1">Reports & Analytics</h2>
@@ -321,20 +391,28 @@
                         </div>
                     </main>
                 `;
-                
+
                 document.getElementById('reportsApp').innerHTML = html;
             },
-            
-            logout: async function() {
+
+            logout: async function () {
+                console.log('Logging out...');
                 StockSenseAPI.destroySession();
                 window.location.href = 'login.html';
             }
         };
 
-        // Initialize immediately
-        ReportsPage.init();
+        // Initialize the page when DOM is ready
+        document.addEventListener('DOMContentLoaded', function () {
+            ReportsPage.init();
+        });
     </script>
+
+    <!-- Notification Toast Container -->
+    <div class="toast-container position-fixed bottom-0 end-0 p-3" style="z-index: 1100" id="toastContainer"></div>
+
     <!-- Bootstrap JS Bundle with Popper -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 </body>
+
 </html>

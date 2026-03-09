@@ -18,6 +18,43 @@
             padding: 0;
         }
 
+        #mainContent {
+            animation: fadeIn 0.5s ease-in-out;
+        }
+
+        .admin-only,
+        .staff-only {
+            display: none !important;
+        }
+
+        body.role-admin .admin-only {
+            display: block !important;
+        }
+
+        body.role-admin li.admin-only {
+            display: list-item !important;
+        }
+
+        body.role-staff .staff-only {
+            display: block !important;
+        }
+
+        body.role-staff li.staff-only {
+            display: list-item !important;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(5px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
         .nav-link-custom {
             position: relative;
             color: #64748b;
@@ -136,6 +173,15 @@
             background-color: rgba(25, 135, 84, 0.1) !important;
             color: #198754 !important;
         }
+
+        .noti-badge {
+            padding: 0.35em 0.5em;
+            line-height: 1;
+        }
+
+        .dropdown-toggle::after {
+            display: none !important;
+        }
     </style>
 </head>
 
@@ -168,6 +214,67 @@
         const isStaff = session ? session.role === 'staff' : false;
     </script>
 
+    <!-- Static Security Banner -->
+    <div id="securityBanner" class="security-banner d-flex justify-content-between align-items-center">
+        <div class="d-flex align-items-center gap-2">
+            <i class="bi bi-shield-check fs-5"></i>
+            <span>Inventory Management | <span id="userNamePlaceholder">...</span> (<span
+                    id="userRolePlaceholder">...</span>)</span>
+        </div>
+        <button onclick="InventoryPage.logout()"
+            class="btn btn-link text-white p-0 text-decoration-none small opacity-75">Logout</button>
+    </div>
+
+    <!-- Static Top Navigation -->
+    <nav id="mainNavbar" class="navbar navbar-expand-lg bg-white shadow-sm sticky-top">
+        <div class="container">
+            <a class="navbar-brand d-flex align-items-center gap-2" href="#" id="brandLink">
+                <div id="brandIcon" class="rounded-3 p-2 text-white">
+                    <i class="bi bi-boxes fs-4"></i>
+                </div>
+                <span class="fw-bold text-dark fs-4">StockSense PH</span>
+            </a>
+
+            <div class="d-flex align-items-center gap-2 ms-auto">
+                <!-- Notification Bell -->
+                <div class="dropdown me-3">
+                    <a class="nav-link-custom position-relative dropdown-toggle p-2" href="#" id="notiDropdown"
+                        role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                        <i class="bi bi-bell fs-5"></i>
+                        <span
+                            class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger noti-badge"
+                            style="font-size: 0.6rem; display: none;">
+                            0
+                        </span>
+                    </a>
+                    <div class="dropdown-menu dropdown-menu-end shadow border-0 py-0 overflow-hidden"
+                        aria-labelledby="notiDropdown" style="width: 280px; margin-top: 1rem;">
+                        <div class="p-2 border-bottom bg-light">
+                            <h6 class="mb-0 fw-bold small px-2">Notifications</h6>
+                        </div>
+                        <div id="notificationList" style="max-height: 300px; overflow-y: auto;">
+                            <div class="p-3 text-center text-secondary small">Loading...</div>
+                        </div>
+                    </div>
+                </div>
+                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                    <span class="navbar-toggler-icon"></span>
+                </button>
+            </div>
+
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ms-auto">
+                    <li class="nav-item"><a href="#" id="dashboardLink" class="nav-link-custom">Dashboard</a></li>
+                    <li class="nav-item"><a href="#" class="nav-link-custom active">Inventory</a></li>
+                    <li class="nav-item"><a href="sales.html" class="nav-link-custom">Sales</a></li>
+                    <li class="nav-item admin-only"><a href="customers.html" class="nav-link-custom">Customers</a></li>
+                    <li class="nav-item admin-only"><a href="reports.html" class="nav-link-custom">Reports</a></li>
+                    <li class="nav-item admin-only"><a href="settings.html" class="nav-link-custom">Settings</a></li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
     <div id="inventoryApp">
         <div class="d-flex justify-content-center align-items-center" style="min-height: 400px;">
             <div class="text-center">
@@ -178,6 +285,9 @@
             </div>
         </div>
     </div>
+
+    <!-- Notification Toast Container -->
+    <div class="toast-container position-fixed bottom-0 end-0 p-3" style="z-index: 1100" id="toastContainer"></div>
 
     <script>
         // Main page code
@@ -203,6 +313,9 @@
 
                 console.log('isAdmin:', this.isAdmin, 'isStaff:', this.isStaff);
                 await this.render();
+
+                // Check for low stock alerts on load
+                setTimeout(() => StockSenseAPI.checkLowStock(), 1000);
             },
 
             getStatusClass: async function (stock) {
@@ -220,66 +333,47 @@
             render: async function () {
                 console.log('InventoryPage.render() called');
 
+                // Apply role-based classes to body
+                document.body.className = this.isAdmin ? 'role-admin' : 'role-staff';
+
+                // Update session info
+                document.getElementById('userNamePlaceholder').textContent = this.session.name;
+                document.getElementById('userRolePlaceholder').textContent = this.isAdmin ? 'Admin' : 'Staff';
+
+                // Update layout elements
+                const banner = document.getElementById('securityBanner');
+                banner.className = `security-banner ${this.isAdmin ? 'admin-banner' : 'staff-banner'} d-flex justify-content-between align-items-center`;
+
+                const navbar = document.getElementById('mainNavbar');
+                if (this.isStaff) navbar.classList.add('staff-theme');
+
+                const dashboardLink = this.isAdmin ? 'admin-dashboard.html' : 'staff-dashboard.html';
+                document.getElementById('dashboardLink').href = dashboardLink;
+                document.getElementById('brandLink').href = dashboardLink;
+
+                const brandIcon = document.getElementById('brandIcon');
+                brandIcon.className = this.isAdmin ? 'bg-primary bg-gradient rounded-3 p-2 text-white' : 'bg-success bg-gradient rounded-3 p-2 text-white';
+
                 // Get inventory data from API
                 const inventory = await StockSenseAPI.getInventory();
                 console.log('Inventory data:', inventory);
 
+                // Filter out discontinued for statistics
+                const activeInventory = inventory.filter(i => i.status !== 'discontinued');
+
                 const stats = {
-                    totalItems: inventory.length,
-                    totalValue: inventory.reduce((sum, item) => sum + (item.price * item.stock), 0),
-                    lowStock: inventory.filter(i => i.stock < 20 && i.stock > 0).length,
-                    outOfStock: inventory.filter(i => i.stock === 0).length
+                    totalItems: activeInventory.length,
+                    totalValue: activeInventory.reduce((sum, item) => sum + (item.price * item.stock), 0),
+                    lowStock: activeInventory.filter(i => i.stock < i.reorderLevel && i.stock > 0).length,
+                    outOfStock: activeInventory.filter(i => i.stock === 0).length
                 };
 
-                console.log('Stats:', stats);
-
-                const dashboardLink = this.isAdmin ? 'admin-dashboard.html' : 'staff-dashboard.html';
-                const bannerClass = this.isAdmin ? 'admin-banner' : 'staff-banner';
+                const dashboardUrl = this.isAdmin ? 'admin-dashboard.html' : 'staff-dashboard.html';
                 const themeClass = this.isStaff ? 'staff-theme' : '';
-                const primaryColor = this.isAdmin ? '#0d6efd' : '#198754';
-                const bgGradient = this.isAdmin ?
-                    'bg-primary bg-gradient' :
-                    'bg-success bg-gradient';
 
                 const html = `
-                    <!-- Security Banner -->
-                    <div class="security-banner ${bannerClass} d-flex justify-content-between align-items-center">
-                        <div class="d-flex align-items-center gap-2">
-                            <i class="bi bi-shield-check fs-5"></i>
-                            <span>Inventory Management | ${this.session.name} (${this.isAdmin ? 'Admin' : 'Staff'})</span>
-                        </div>
-                        <button onclick="InventoryPage.logout()" class="btn btn-link text-white p-0 text-decoration-none small opacity-75">Logout</button>
-                    </div>
-
-                    <!-- Top Navigation -->
-                    <nav class="navbar navbar-expand-lg bg-white shadow-sm sticky-top ${themeClass}">
-                        <div class="container">
-                            <a class="navbar-brand d-flex align-items-center gap-2" href="${dashboardLink}">
-                                <div class="${bgGradient} rounded-3 p-2 text-white">
-                                    <i class="bi bi-boxes fs-4"></i>
-                                </div>
-                                <span class="fw-bold text-dark fs-4">StockSense PH</span>
-                            </a>
-                            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
-                                <span class="navbar-toggler-icon"></span>
-                            </button>
-                            <div class="collapse navbar-collapse" id="navbarNav">
-                                <ul class="navbar-nav ms-auto">
-                                    <li class="nav-item"><a href="${dashboardLink}" class="nav-link-custom">Dashboard</a></li>
-                                    <li class="nav-item"><a href="#" class="nav-link-custom active">Inventory</a></li>
-                                    <li class="nav-item"><a href="sales.html" class="nav-link-custom">Sales</a></li>
-                                    ${this.isAdmin ? `
-                                        <li class="nav-item"><a href="customers.html" class="nav-link-custom">Customers</a></li>
-                                        <li class="nav-item"><a href="reports.html" class="nav-link-custom">Reports</a></li>
-                                        <li class="nav-item"><a href="settings.html" class="nav-link-custom">Settings</a></li>
-                                    ` : ''}
-                                </ul>
-                            </div>
-                        </div>
-                    </nav>
-
                     <!-- Main Content -->
-                    <main class="container py-4 ${themeClass}">
+                    <main class="container py-4 ${themeClass}" id="mainContent">
                         <!-- Header -->
                         <div class="d-flex justify-content-between align-items-center mb-4">
                             <div>
@@ -389,12 +483,10 @@
                                                         <small class="text-secondary ms-1">/ min ${item.reorderLevel}</small>
                                                     </td>
                                                     <td>
-                                                        <span class="badge ${item.status === 'active' ? 'bg-success' : 'bg-secondary'} bg-opacity-10 ${item.status === 'active' ? 'text-success' : 'text-secondary'} px-3 py-2 rounded-pill text-capitalize">
-                                                            ${item.status || 'active'}
-                                                        </span>
-                                                        <div class="mt-1 small">
-                                                            <span class="${this.getStatusClass(item.stock)} opacity-75" style="font-size: 0.7rem;">
-                                                                ● ${this.getStatusText(item.stock)}
+                                                        <div class="d-flex flex-column gap-1">
+                                                            ${StockSenseAPI.getStatusBadge(item.status || 'active')}
+                                                            <span class="${StockSenseAPI.getStatusClass(item.stock, item.reorderLevel)} status-badge" style="font-size: 0.7rem;">
+                                                                ${StockSenseAPI.getStatusText(item.stock, item.reorderLevel)}
                                                             </span>
                                                         </div>
                                                     </td>
@@ -589,6 +681,9 @@
                     const modal = bootstrap.Modal.getInstance(modalEl);
                     if (modal) modal.hide();
                     await this.render();
+
+                    // Trigger check after save in case stock changed
+                    StockSenseAPI.checkLowStock();
                 } else {
                     errorBox.textContent = result?.message || 'Failed to save product';
                     errorBox.classList.remove('d-none');
