@@ -63,12 +63,12 @@
         const SettingsPage = {
             session: null,
             
-            init: function() {
+            init: async function() {
                 this.session = StockSenseAPI.getSession();
-                this.render();
+                await this.render();
             },
             
-            render: function() {
+            render: async function() {
                 const html = `
                     <!-- Security Banner -->
                     <div class="security-banner px-4 py-2 small d-flex justify-content-between align-items-center">
@@ -216,7 +216,7 @@
                 document.getElementById('settingsApp').innerHTML = html;
             },
             
-            clearAllData: function() {
+            clearAllData: async function() {
                 if (confirm('Are you sure? This will clear all demo data.')) {
                     localStorage.clear();
                     sessionStorage.clear();
@@ -225,7 +225,7 @@
                 }
             },
             
-            logout: function() {
+            logout: async function() {
                 StockSenseAPI.destroySession();
                 window.location.href = 'login.html';
             }

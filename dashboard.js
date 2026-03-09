@@ -4,11 +4,11 @@
 
 const DashboardAPI = (function() {
     return {
-        getSession: function() {
+        getSession: async function() {
             return StockSenseAPI.getSession();
         },
         
-        validateSession: function() {
+        validateSession: async function() {
             const result = StockSenseAPI.validateSession();
             if (!result.valid) {
                 window.location.replace('login.html');
@@ -17,28 +17,28 @@ const DashboardAPI = (function() {
             return result.session;
         },
         
-        logout: function() {
+        logout: async function() {
             StockSenseAPI.destroySession();
             window.location.replace('login.html');
         },
         
-        getStats: function() {
-            return StockSenseAPI.getDashboardStats();
+        getStats: async function() {
+            return await StockSenseAPI.getDashboardStats();
         },
         
-        getOrders: function(limit) {
-            return StockSenseAPI.getRecentOrders(limit);
+        getOrders: async function(limit) {
+            return await StockSenseAPI.getRecentOrders(limit);
         },
         
-        formatCurrency: function(amount) {
+        formatCurrency: async function(amount) {
             return StockSenseAPI.formatCurrency(amount);
         },
         
-        formatDate: function(isoString) {
+        formatDate: async function(isoString) {
             return StockSenseAPI.formatDate(isoString);
         },
         
-        getStatusBadge: function(status) {
+        getStatusBadge: async function(status) {
             return StockSenseAPI.getStatusBadge(status);
         }
     };

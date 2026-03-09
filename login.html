@@ -154,6 +154,7 @@
 </head>
 
 <body>
+    <script src="api.js"></script>
     <div class="login-container">
         <!-- Login Card Container (relative for overlays) -->
         <div id="loginContainer" class="position-relative">
@@ -284,199 +285,13 @@
         // STOCKSENSE API - Built-in
         // ==========================================
 
-        const StockSenseAPI = (function () {
-            console.log('🔥 StockSense API initializing...');
-
-            // Users database
-            const users = [
-                { username: 'admin', password: 'Admin@1234567890abc', role: 'admin', employeeId: 'EMP-2024-001', name: 'Admin User' },
-                { username: 'staff', password: 'Staff@1234567890xyz', role: 'staff', employeeId: 'EMP-2024-002', name: 'Staff User' }
-            ];
-
-            // Security state
-            let security = {
-                failures: 0,
-                stage: 0,
-                lockedUntil: null,
-                permanentlyLocked: false,
-                permanentLockTime: null
-            };
-
-            // Load from storage
-            function loadFromStorage() {
-                const saved = localStorage.getItem('stockSenseSecurity');
-                if (saved) {
-                    try {
-                        security = JSON.parse(saved);
-                        console.log('Loaded security state:', security);
-                    } catch (e) {
-                        console.error('Failed to load security data');
-                    }
-                }
-            }
-
-            // Initialize by loading from storage
-            loadFromStorage();
-
-            function saveToStorage() {
-                localStorage.setItem('stockSenseSecurity', JSON.stringify(security));
-                console.log('Saved security state:', security);
-            }
-
-            return {
-                validateUser: function (username, password) {
-                    return users.find(u => u.username === username && u.password === password);
-                },
-
-                getSecurityState: function () {
-                    return { ...security };
-                },
-
-                checkLocked: function () {
-                    // Check permanent lock first
-                    if (security.permanentlyLocked) {
-                        return {
-                            locked: true,
-                            permanent: true,
-                            lockTime: security.permanentLockTime
-                        };
-                    }
-
-                    // Check temporary lock
-                    if (security.lockedUntil) {
-                        const now = new Date();
-                        const lockTime = new Date(security.lockedUntil);
-
-                        if (now < lockTime) {
-                            // Calculate remaining time
-                            const remainingMs = lockTime - now;
-                            const remainingSec = Math.floor(remainingMs / 1000);
-                            const minutes = Math.floor(remainingSec / 60);
-                            const seconds = remainingSec % 60;
-
-                            return {
-                                locked: true,
-                                permanent: false,
-                                stage: security.stage,
-                                lockUntil: security.lockedUntil,
-                                remaining: {
-                                    ms: remainingMs,
-                                    seconds: remainingSec,
-                                    minutes: minutes,
-                                    seconds: seconds,
-                                    display: `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`
-                                }
-                            };
-                        } else {
-                            // Lock expired, clear it
-                            security.lockedUntil = null;
-                            security.stage = 0;
-                            // Don't reset failures count when lock expires
-                            // Only clear the lock
-                            saveToStorage();
-                        }
-                    }
-
-                    return { locked: false };
-                },
-
-                recordFailure: function () {
-                    security.failures++;
-                    console.log('Failed attempts:', security.failures);
-
-                    if (security.failures >= 6) {
-                        security.permanentlyLocked = true;
-                        security.permanentLockTime = new Date().toISOString();
-                        security.stage = 4;
-                        security.lockedUntil = null;
-                        saveToStorage();
-                        return {
-                            locked: true,
-                            permanent: true,
-                            failures: security.failures,
-                            lockTime: security.permanentLockTime
-                        };
-                    }
-
-                    if (security.failures >= 3 && security.failures <= 5) {
-                        security.stage = security.failures - 2;
-                        // Stage 1: 30 seconds, Stage 2: 30 seconds, Stage 3: 60 seconds
-                        const minutes = [0.5, 0.5, 1][security.stage - 1];
-                        const lockTime = new Date(Date.now() + minutes * 60 * 1000);
-                        security.lockedUntil = lockTime.toISOString();
-                        saveToStorage();
-
-                        // Calculate remaining time for immediate display
-                        const remainingMs = lockTime - new Date();
-                        const remainingSec = Math.floor(remainingMs / 1000);
-                        const mins = Math.floor(remainingSec / 60);
-                        const secs = remainingSec % 60;
-
-                        return {
-                            locked: true,
-                            permanent: false,
-                            stage: security.stage,
-                            lockUntil: security.lockedUntil,
-                            minutes: minutes,
-                            failures: security.failures,
-                            remaining: {
-                                minutes: mins,
-                                seconds: secs,
-                                display: `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`
-                            }
-                        };
-                    }
-
-                    saveToStorage();
-                    return { locked: false, failures: security.failures };
-                },
-
-                resetSecurity: function () {
-                    security = {
-                        failures: 0,
-                        stage: 0,
-                        lockedUntil: null,
-                        permanentlyLocked: false,
-                        permanentLockTime: null
-                    };
-                    saveToStorage();
-                    console.log('Security reset');
-                },
-
-                createSession: function (user) {
-                    const session = {
-                        username: user.username,
-                        role: user.role,
-                        employeeId: user.employeeId,
-                        name: user.name,
-                        loginTime: new Date().toISOString()
-                    };
-                    sessionStorage.setItem('stockSenseUser', JSON.stringify(session));
-                    return session;
-                },
-
-                getSession: function () {
-                    const session = sessionStorage.getItem('stockSenseUser');
-                    return session ? JSON.parse(session) : null;
-                },
-
-                destroySession: function () {
-                    sessionStorage.removeItem('stockSenseUser');
-                },
-
-                formatCurrency: function (amount) {
-                    return '₱' + amount.toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-                }
-            };
-        })();
-
-        window.StockSenseAPI = StockSenseAPI;
+        
 
         // ==================== APPLICATION ====================
         const App = {
             countdownInterval: null,
 
-            init: function () {
+            init: async function() {
                 console.log('App initializing...');
 
                 // Add form submit handler
@@ -489,7 +304,7 @@
                 this.checkInitialLockStatus();
             },
 
-            checkInitialLockStatus: function () {
+            checkInitialLockStatus: async function() {
                 const lockStatus = StockSenseAPI.checkLocked();
                 console.log('Initial lock status:', lockStatus);
 
@@ -510,7 +325,7 @@
                 }
             },
 
-            hideAllOverlays: function () {
+            hideAllOverlays: async function() {
                 document.getElementById('lockoutOverlay').classList.add('d-none');
                 document.getElementById('permanentLockoutOverlay').classList.add('d-none');
                 if (this.countdownInterval) {
@@ -519,7 +334,7 @@
                 }
             },
 
-            togglePassword: function () {
+            togglePassword: async function() {
                 const input = document.getElementById('password');
                 const icon = document.getElementById('eyeIcon');
                 if (input.type === 'password') {
@@ -581,7 +396,7 @@
                 await new Promise(r => setTimeout(r, 500));
 
                 // Validate user
-                const user = StockSenseAPI.validateUser(username, password);
+                const user = await StockSenseAPI.validateUser(username, password);
 
                 if (!user) {
                     const result = StockSenseAPI.recordFailure();
@@ -638,7 +453,7 @@
                 }, 1000);
             },
 
-            showLockout: function (lockUntil, stage, minutes, remaining) {
+            showLockout: async function(lockUntil, stage, minutes, remaining) {
                 console.log('Showing lockout:', { lockUntil, stage, minutes, remaining });
 
                 // Clear any existing interval
@@ -682,7 +497,7 @@
                 }, 1000);
             },
 
-            showPermanentLockout: function (lockTime) {
+            showPermanentLockout: async function(lockTime) {
                 console.log('Showing permanent lockout:', lockTime);
 
                 // Hide temporary overlay, show permanent
@@ -694,7 +509,7 @@
                     lockTime ? new Date(lockTime).toLocaleString() : 'Just now';
             },
 
-            unlockAccount: function () {
+            unlockAccount: async function() {
                 console.log('Unlocking account...');
                 StockSenseAPI.resetSecurity();
                 this.hideAllOverlays();

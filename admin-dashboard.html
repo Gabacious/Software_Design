@@ -77,15 +77,15 @@
         const AdminDashboard = {
             session: null,
             
-            init: function() {
+            init: async function() {
                 this.session = StockSenseAPI.getSession();
                 if (!this.session) return;
-                this.render();
+                await this.render();
             },
             
-            render: function() {
-                const stats = StockSenseAPI.getDashboardStats();
-                const orders = StockSenseAPI.getRecentOrders(6);
+            render: async function() {
+                const stats = await StockSenseAPI.getDashboardStats();
+                const orders = await StockSenseAPI.getRecentOrders(6);
                 
                 const html = `
                     <!-- Security Banner -->
@@ -264,7 +264,7 @@
                 document.getElementById('dashboardApp').innerHTML = html;
             },
             
-            logout: function() {
+            logout: async function() {
                 StockSenseAPI.destroySession();
                 window.location.href = 'login.html';
             }
