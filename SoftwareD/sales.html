@@ -1,0 +1,497 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>StockSense PH - Sales</title>
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Bootstrap Icons -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Outfit', sans-serif;
+            background-color: #f8fafc;
+            margin: 0;
+            padding: 0;
+        }
+
+        #mainContent {
+            animation: fadeIn 0.5s ease-in-out;
+        }
+
+        .admin-only,
+        .staff-only {
+            display: none !important;
+        }
+
+        body.role-admin .admin-only {
+            display: block !important;
+        }
+
+        body.role-admin li.admin-only {
+            display: list-item !important;
+        }
+
+        body.role-staff .staff-only {
+            display: block !important;
+        }
+
+        body.role-staff li.staff-only {
+            display: list-item !important;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(5px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .noti-badge {
+            padding: 0.35em 0.5em;
+            line-height: 1;
+        }
+
+        .dropdown-toggle::after {
+            display: none !important;
+        }
+
+        .nav-link-custom {
+            position: relative;
+            color: #64748b;
+            font-weight: 500;
+            padding: 0.5rem 0.25rem;
+            margin: 0 0.75rem;
+            text-decoration: none;
+        }
+
+        .nav-link-custom:hover {
+            color: #0d6efd;
+        }
+
+        .nav-link-custom.active {
+            color: #0d6efd;
+        }
+
+        .nav-link-custom.active::after {
+            content: '';
+            position: absolute;
+            bottom: -4px;
+            left: 0;
+            width: 100%;
+            height: 2px;
+            background: #0d6efd;
+        }
+
+        /* Staff theme overrides */
+        .staff-theme .nav-link-custom:hover {
+            color: #0f5132;
+        }
+
+        .staff-theme .nav-link-custom.active {
+            color: #198754;
+        }
+
+        .staff-theme .nav-link-custom.active::after {
+            background: #198754;
+        }
+
+        .staff-theme .btn-primary {
+            background-color: #198754;
+            border-color: #198754;
+        }
+
+        .staff-theme .btn-primary:hover {
+            background-color: #146c43;
+            border-color: #146c43;
+        }
+
+        .staff-theme .text-primary {
+            color: #198754 !important;
+        }
+
+        .staff-theme .bg-primary {
+            background-color: #198754 !important;
+        }
+
+        .staff-theme .bg-primary.bg-gradient {
+            background: linear-gradient(135deg, #198754 0%, #146c43 100%) !important;
+        }
+
+        .security-banner {
+            padding: 0.5rem 1rem;
+            font-size: 0.875rem;
+        }
+
+        .admin-banner {
+            background: linear-gradient(135deg, #0b5e9e 0%, #084298 100%);
+            color: white;
+        }
+
+        .staff-banner {
+            background: linear-gradient(135deg, #198754 0%, #146c43 100%);
+            color: white;
+        }
+
+        .stat-icon {
+            width: 48px;
+            height: 48px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 12px;
+            font-size: 1.5rem;
+        }
+    </style>
+</head>
+
+<body>
+    <script src="api.js"></script>
+    <!-- INLINE API - Everything is self-contained -->
+    <script>
+        // ==========================================
+        // STOCKSENSE API - COMPLETE SELF-CONTAINED
+        // ==========================================
+
+        // Create the API object
+
+
+
+        // ==========================================
+        // PAGE SPECIFIC CODE
+        // ==========================================
+
+        // Check session
+        const session = StockSenseAPI.getSession();
+        console.log('Current session:', session);
+
+        if (!session) {
+            console.log('No session, redirecting to login');
+            window.location.href = 'login.html';
+        }
+
+        const isAdmin = session ? session.role === 'admin' : false;
+        const isStaff = session ? session.role === 'staff' : false;
+    </script>
+
+    <!-- Static Security Banner -->
+    <div id="securityBanner" class="security-banner d-flex justify-content-between align-items-center">
+        <div class="d-flex align-items-center gap-2">
+            <i class="bi bi-shield-check fs-5"></i>
+            <span>Supplier Procurement | Role: <span id="userRolePlaceholder" class="fw-bold">...</span> | <span id="userNamePlaceholder">...</span></span>
+        </div>
+        <button onclick="SalesPage.logout()"
+            class="btn btn-link text-white p-0 text-decoration-none small opacity-75">Logout</button>
+    </div>
+
+    <!-- Static Top Navigation -->
+    <nav id="mainNavbar" class="navbar navbar-expand-lg bg-white shadow-sm sticky-top">
+        <div class="container">
+            <a class="navbar-brand d-flex align-items-center gap-2" href="#" id="brandLink">
+                <div id="brandIcon" class="rounded-3 p-2 text-white">
+                    <i class="bi bi-boxes fs-4"></i>
+                </div>
+                <span class="fw-bold text-dark fs-4">StockSense PH</span>
+            </a>
+
+            <div class="d-flex align-items-center gap-2 ms-auto">
+                <!-- Notification Bell -->
+                <div class="dropdown me-3">
+                    <a class="nav-link-custom position-relative dropdown-toggle p-2" href="#" id="notiDropdown"
+                        role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                        <i class="bi bi-bell fs-5"></i>
+                        <span
+                            class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger noti-badge"
+                            style="font-size: 0.6rem; display: none;">
+                            0
+                        </span>
+                    </a>
+                    <div class="dropdown-menu dropdown-menu-end shadow border-0 py-0 overflow-hidden"
+                        aria-labelledby="notiDropdown" style="width: 280px; margin-top: 1rem;">
+                        <div class="p-2 border-bottom bg-light">
+                            <h6 class="mb-0 fw-bold small px-2">Notifications</h6>
+                        </div>
+                        <div id="notificationList" style="max-height: 300px; overflow-y: auto;">
+                            <div class="p-3 text-center text-secondary small">Loading...</div>
+                        </div>
+                    </div>
+                </div>
+                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                    <span class="navbar-toggler-icon"></span>
+                </button>
+            </div>
+
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ms-auto">
+                    <li class="nav-item"><a href="#" id="dashboardLink" class="nav-link-custom">Dashboard</a></li>
+                    <li class="nav-item"><a href="inventory.html" class="nav-link-custom">Inventory</a></li>
+                    <li class="nav-item"><a href="#" class="nav-link-custom active">Sales</a></li>
+                    <li class="nav-item admin-only"><a href="orders.html" class="nav-link-custom">Orders</a></li>
+                    <li class="nav-item admin-only"><a href="suppliers.html" class="nav-link-custom">Suppliers</a></li>
+                    <li class="nav-item admin-only"><a href="reports.html" class="nav-link-custom">Reports</a></li>
+                    <li class="nav-item admin-only"><a href="settings.html" class="nav-link-custom">Settings</a></li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <div id="salesApp">
+        <div class="d-flex justify-content-center align-items-center" style="min-height: 400px;">
+            <div class="text-center">
+                <div class="spinner-border text-primary" style="width: 3rem; height: 3rem;" role="status">
+                    <span class="visually-hidden">Loading...</span>
+                </div>
+                <p class="mt-3 text-secondary">Loading sales data...</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Main page code
+        const SalesPage = {
+            session: null,
+            isAdmin: false,
+            isStaff: false,
+
+            init: async function () {
+                console.log('SalesPage.init() called');
+
+                this.session = StockSenseAPI.getSession();
+                console.log('Session in init:', this.session);
+
+                if (!this.session) {
+                    console.log('No session, redirecting to login');
+                    window.location.href = 'login.html';
+                    return;
+                }
+
+                this.isAdmin = this.session.role === 'admin';
+                this.isStaff = this.session.role === 'staff';
+
+                console.log('isAdmin:', this.isAdmin, 'isStaff:', this.isStaff);
+                await this.render();
+                StockSenseAPI.checkLowStock();
+            },
+
+            render: async function () {
+                console.log('SalesPage.render() called');
+
+                // Apply role-based classes to body
+                document.body.className = this.isAdmin ? 'role-admin' : 'role-staff';
+
+                // Update session info
+                document.getElementById('userNamePlaceholder').textContent = this.session.name;
+                document.getElementById('userRolePlaceholder').textContent = this.isAdmin ? 'Admin' : 'Staff';
+
+                // Update layout elements
+                const banner = document.getElementById('securityBanner');
+                banner.className = `security-banner ${this.isAdmin ? 'admin-banner' : 'staff-banner'} d-flex justify-content-between align-items-center`;
+
+                const navbar = document.getElementById('mainNavbar');
+                if (this.isStaff) navbar.classList.add('staff-theme');
+
+                const dashboardLink = this.isAdmin ? 'admin-dashboard.html' : 'staff-dashboard.html';
+                document.getElementById('dashboardLink').href = dashboardLink;
+                document.getElementById('brandLink').href = dashboardLink;
+
+                const brandIcon = document.getElementById('brandIcon');
+                brandIcon.className = this.isAdmin ? 'bg-primary bg-gradient rounded-3 p-2 text-white' : 'bg-success bg-gradient rounded-3 p-2 text-white';
+
+                // Get sales data from API
+                const sales = await StockSenseAPI.getSales();
+                console.log('Sales data:', sales);
+
+                // Calculate totals
+                const totalSales = sales.length;
+                const totalRevenue = sales.reduce((sum, s) => sum + s.total, 0);
+                const todayStr = new Date().toISOString().split('T')[0];
+                const todaySales = sales.filter(s => s.date === todayStr).length;
+                const todayRevenue = sales.filter(s => s.date === todayStr).reduce((sum, s) => sum + s.total, 0);
+
+                const themeClass = this.isStaff ? 'staff-theme' : '';
+
+                const html = `
+                    <!-- Main Content -->
+                    <main class="container py-4 ${themeClass}" id="mainContent">
+                        <!-- Header -->
+                        <div class="d-flex justify-content-between align-items-center mb-4">
+                            <div>
+                                <h2 class="fw-bold mb-1">Sales Transactions</h2>
+                                <p class="text-secondary small mb-0">View sales records</p>
+                            </div>
+                        </div>
+
+                        <!-- Sales Stats -->
+                        <div class="row g-4 mb-4">
+                            <div class="col-md-3">
+                                <div class="card border-0 shadow-sm">
+                                    <div class="card-body">
+                                        <div class="d-flex align-items-center gap-3">
+                                            <div class="stat-icon ${this.isAdmin ? 'bg-primary bg-opacity-10 text-primary' : 'bg-success bg-opacity-10 text-success'}">
+                                                <i class="bi bi-cart"></i>
+                                            </div>
+                                            <div>
+                                                <p class="text-secondary small mb-1">Total Transactions</p>
+                                                <h4 class="fw-bold mb-0">${totalSales}</h4>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="card border-0 shadow-sm">
+                                    <div class="card-body">
+                                        <div class="d-flex align-items-center gap-3">
+                                            <div class="stat-icon ${this.isAdmin ? 'bg-primary bg-opacity-10 text-primary' : 'bg-success bg-opacity-10 text-success'}">
+                                                <i class="bi bi-cash-stack"></i>
+                                            </div>
+                                            <div>
+                                                <p class="text-secondary small mb-1">Total Revenue</p>
+                                                <h4 class="fw-bold mb-0">${StockSenseAPI.formatCurrency(totalRevenue)}</h4>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="card border-0 shadow-sm">
+                                    <div class="card-body">
+                                        <div class="d-flex align-items-center gap-3">
+                                            <div class="stat-icon bg-info bg-opacity-10 text-info">
+                                                <i class="bi bi-calendar-day"></i>
+                                            </div>
+                                            <div>
+                                                <p class="text-secondary small mb-1">Today's Sales</p>
+                                                <h4 class="fw-bold mb-0">${todaySales}</h4>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="card border-0 shadow-sm">
+                                    <div class="card-body">
+                                        <div class="d-flex align-items-center gap-3">
+                                            <div class="stat-icon bg-warning bg-opacity-10 text-warning">
+                                                <i class="bi bi-cash"></i>
+                                            </div>
+                                            <div>
+                                                <p class="text-secondary small mb-1">Today's Revenue</p>
+                                                <h4 class="fw-bold mb-0">${StockSenseAPI.formatCurrency(todayRevenue)}</h4>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Sales Table -->
+                        <div class="card border-0 shadow-sm">
+                            <div class="card-header bg-white border-0 pt-4 pb-0">
+                                <h5 class="fw-bold mb-0">Sales History</h5>
+                            </div>
+                            <div class="card-body">
+                                <div class="table-responsive">
+                                    <table class="table table-hover align-middle">
+                                        <thead class="table-light">
+                                            <tr>
+                                                <th>Invoice #</th>
+                                                <th>Date</th>
+                                                <th>Reference</th>
+                                                <th>Items</th>
+                                                <th>Total</th>
+                                                <th>Payment</th>
+                                                <th>Status</th>
+                                                <th class="text-end">Actions</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            ${sales.map(sale => `
+                                                <tr>
+                                                    <td><span class="${this.isAdmin ? 'text-primary' : 'text-success'} fw-medium">${sale.id}</span></td>
+                                                    <td class="small">${sale.date}</td>
+                                                    <td>${sale.customer}</td>
+                                                    <td>${sale.items}</td>
+                                                    <td class="fw-medium">${StockSenseAPI.formatCurrency(sale.total)}</td>
+                                                    <td><span class="badge bg-light text-dark">${sale.payment}</span></td>
+                                                    <td>${StockSenseAPI.getStatusBadge(sale.status)}</td>
+                                                    <td class="text-end">
+                                                        ${sale.status === 'Pending' ? `
+                                                            <div class="d-flex justify-content-end gap-1">
+                                                                <button class="btn btn-sm btn-success px-2 py-1" onclick="SalesPage.updateStatus('${sale.id}', 'Completed')" title="Mark as Done">
+                                                                    <i class="bi bi-check2"></i> Done
+                                                                </button>
+                                                                <button class="btn btn-sm btn-outline-danger px-2 py-1" onclick="SalesPage.updateStatus('${sale.id}', 'Cancelled')" title="Cancel Order">
+                                                                    <i class="bi bi-x-lg"></i> Cancel
+                                                                </button>
+                                                            </div>
+                                                        ` : ''}
+                                                    </td>
+                                                </tr>
+                                            `).join('')}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+
+                        ${!this.isAdmin ? `
+                        <div class="alert alert-success bg-opacity-10 border-0 mt-4 d-flex align-items-center justify-content-between">
+                            <div>
+                                <i class="bi bi-info-circle-fill me-2"></i>
+                                Sales history is synced with your POS transactions.
+                            </div>
+                            <a href="staff-dashboard.html" class="btn btn-sm btn-success fw-bold">Open POS Dashboard</a>
+                        </div>
+                        ` : ''}
+                    </main>
+                `;
+
+                console.log('Setting HTML content');
+                document.getElementById('salesApp').innerHTML = html;
+                console.log('Page rendered successfully');
+            },
+
+            logout: async function () {
+                console.log('Logging out...');
+                StockSenseAPI.destroySession();
+                window.location.href = 'login.html';
+            },
+
+            updateStatus: async function (id, status) {
+                const actionText = status === 'Completed' ? 'mark as done' : 'cancel';
+                if (!confirm(`Are you sure you want to ${actionText} this order?`)) return;
+
+                const result = await StockSenseAPI.updateSaleStatus(id, status);
+                if (result && result.success) {
+                    await this.render();
+                    StockSenseAPI.showNotification('Success', `Order ${status === 'Completed' ? 'completed' : 'cancelled'}.`, 'success');
+                } else {
+                    alert(result?.message || 'Failed to update status');
+                }
+            }
+        };
+
+        // Initialize the page when DOM is ready
+        document.addEventListener('DOMContentLoaded', function () {
+            console.log('DOM ready, initializing page...');
+            SalesPage.init();
+        });
+    </script>
+
+    <!-- Notification Toast Container -->
+    <div class="toast-container position-fixed bottom-0 end-0 p-3" style="z-index: 1100" id="toastContainer"></div>
+
+    <!-- Bootstrap JS Bundle with Popper -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+
+</html>

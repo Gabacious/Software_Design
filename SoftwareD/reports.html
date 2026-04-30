@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>StockSense PH - Reports</title>
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Bootstrap Icons -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Outfit', sans-serif;
+            background-color: #f8fafc;
+        }
+
+        #mainContent {
+            animation: fadeIn 0.5s ease-in-out;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(5px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .noti-badge {
+            padding: 0.35em 0.5em;
+            line-height: 1;
+        }
+
+        .dropdown-toggle::after {
+            display: none !important;
+        }
+
+        .nav-link-custom {
+            position: relative;
+            color: #64748b;
+            font-weight: 500;
+            padding: 0.5rem 0.25rem;
+            margin: 0 0.75rem;
+        }
+
+        .nav-link-custom:hover {
+            color: #0d6efd;
+        }
+
+        .nav-link-custom.active {
+            color: #0d6efd;
+        }
+
+        .nav-link-custom.active::after {
+            content: '';
+            position: absolute;
+            bottom: -4px;
+            left: 0;
+            width: 100%;
+            height: 2px;
+            background: #0d6efd;
+        }
+
+        .security-banner {
+            background: linear-gradient(135deg, #0b5e9e 0%, #084298 100%);
+            color: white;
+        }
+
+        .stat-icon {
+            width: 48px;
+            height: 48px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 12px;
+            font-size: 1.5rem;
+        }
+
+        .progress-bar-custom {
+            height: 8px;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+
+<body>
+    <script src="api.js"></script>
+    <script>
+        const session = StockSenseAPI.getSession();
+        if (!session) {
+            window.location.href = 'login.html';
+        }
+        // Staff cannot access reports page
+        if (session && session.role === 'staff') {
+            alert('Access denied. Admins only.');
+            window.location.href = 'staff-dashboard.html';
+        }
+        const isAdmin = session ? session.role === 'admin' : false;
+    </script>
+
+    <!-- Static Security Banner -->
+    <div class="security-banner px-4 py-2 small d-flex justify-content-between align-items-center">
+        <div class="d-flex align-items-center gap-2">
+            <i class="bi bi-shield-check fs-5"></i>
+            <span>Supplier Procurement | Role: <span class="fw-bold">Admin</span> | <span id="userNamePlaceholder">...</span></span>
+        </div>
+        <button onclick="ReportsPage.logout()"
+            class="btn btn-link text-white p-0 text-decoration-none small opacity-75">Logout</button>
+    </div>
+
+    <!-- Static Top Navigation -->
+    <nav class="navbar navbar-expand-lg bg-white shadow-sm sticky-top">
+        <div class="container">
+            <a class="navbar-brand d-flex align-items-center gap-2" href="admin-dashboard.html">
+                <div class="bg-primary bg-gradient rounded-3 p-2 text-white">
+                    <i class="bi bi-boxes fs-4"></i>
+                </div>
+                <span class="fw-bold text-dark fs-4">StockSense PH</span>
+            </a>
+
+            <div class="d-flex align-items-center gap-2 ms-auto">
+                <!-- Notification Bell -->
+                <div class="dropdown me-3">
+                    <a class="nav-link-custom position-relative dropdown-toggle p-2" href="#" id="notiDropdown"
+                        role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                        <i class="bi bi-bell fs-5"></i>
+                        <span
+                            class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger noti-badge"
+                            style="font-size: 0.6rem; display: none;">
+                            0
+                        </span>
+                    </a>
+                    <div class="dropdown-menu dropdown-menu-end shadow border-0 py-0 overflow-hidden"
+                        aria-labelledby="notiDropdown" style="width: 280px; margin-top: 1rem;">
+                        <div class="p-2 border-bottom bg-light">
+                            <h6 class="mb-0 fw-bold small px-2">Notifications</h6>
+                        </div>
+                        <div id="notificationList" style="max-height: 300px; overflow-y: auto;">
+                            <div class="p-3 text-center text-secondary small">Loading...</div>
+                        </div>
+                    </div>
+                </div>
+                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                    <span class="navbar-toggler-icon"></span>
+                </button>
+            </div>
+
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ms-auto">
+                    <li class="nav-item"><a href="admin-dashboard.html" class="nav-link-custom">Dashboard</a></li>
+                    <li class="nav-item"><a href="inventory.html" class="nav-link-custom">Inventory</a></li>
+                    <li class="nav-item"><a href="sales.html" class="nav-link-custom">Sales</a></li>
+                    <li class="nav-item"><a href="orders.html" class="nav-link-custom">Orders</a></li>
+                    <li class="nav-item"><a href="suppliers.html" class="nav-link-custom">Suppliers</a></li>
+                    <li class="nav-item"><a href="#" class="nav-link-custom active">Reports</a></li>
+                    <li class="nav-item"><a href="settings.html" class="nav-link-custom">Settings</a></li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <div id="reportsApp">
+        <div class="d-flex justify-content-center align-items-center" style="min-height: 400px;">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Loading reports...</span>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const ReportsPage = {
+            session: null,
+            isAdmin: false,
+
+            init: async function () {
+                this.session = StockSenseAPI.getSession();
+                if (!this.session) {
+                    window.location.href = 'login.html';
+                    return;
+                }
+                this.isAdmin = this.session.role === 'admin';
+
+                // Initial render with Overall (null)
+                await this.render(null);
+
+                StockSenseAPI.checkLowStock();
+
+                // Handle date filter change
+                document.addEventListener('change', async (e) => {
+                    if (e.target.id === 'reportDateFilter') {
+                        await this.render(e.target.value);
+                    }
+                });
+            },
+
+            render: async function (selectedDate = null) {
+                const stats = await StockSenseAPI.getDashboardStats(selectedDate);
+                const reportData = await StockSenseAPI.getReportStats(selectedDate);
+
+                if (!reportData) {
+                    document.getElementById('reportsApp').innerHTML = '<div class="p-5 text-center">Error loading report data.</div>';
+                    return;
+                }
+
+                // API date
+                const actualDate = reportData.effectiveDate;
+                
+                // Now get audit logs for THAT specific date
+                const auditLogs = await StockSenseAPI.getAuditLogs(actualDate);
+
+                const monthlySales = reportData.monthlySales;
+                const topProducts = reportData.topProducts;
+                const summary = reportData.summary;
+                const quickStats = reportData.quickStats;
+
+                const maxSales = monthlySales.length > 0 ? Math.max(...monthlySales.map(m => m.sales)) : 1;
+
+                // Update session info
+                document.getElementById('userNamePlaceholder').textContent = this.session.name;
+
+                const html = `
+                    <!-- Main Content -->
+                    <main class="container py-4" id="mainContent">
+                        <!-- Header -->
+                        <div class="d-flex justify-content-between align-items-end mb-4">
+                            <div>
+                                <h2 class="fw-bold mb-1">Reports & Analytics</h2>
+                                <p class="text-secondary-emphasis small mb-0">Business insights and performance metrics</p>
+                            </div>
+                            <div class="d-flex align-items-center gap-3">
+                                <div class="text-end me-2" style="cursor: pointer;" onclick="ReportsPage.render(null)">
+                                    <div class="small text-secondary fw-medium">Analytics View</div>
+                                    <div class="fw-bold text-primary">${reportData.isOverall ? 'All Time Business' : new Date(actualDate).toLocaleDateString('en-PH', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</div>
+                                </div>
+                                <div class="bg-white p-2 rounded shadow-sm border d-flex align-items-center gap-2">
+                                    <div class="btn-group btn-group-sm me-2">
+                                        <button type="button" class="btn btn-outline-secondary ${reportData.isOverall ? 'active' : ''}" onclick="ReportsPage.render(null)">All Time</button>
+                                        <button type="button" class="btn btn-outline-secondary ${!reportData.isOverall && actualDate === new Date().toISOString().split('T')[0] ? 'active' : ''}" onclick="ReportsPage.render(new Date().toISOString().split('T')[0])">Today</button>
+                                    </div>
+                                    <div>
+                                        <label class="small text-secondary fw-medium d-block mb-0" style="font-size: 0.7rem;">Date Filter</label>
+                                        <input type="date" id="reportDateFilter" class="form-control form-control-sm border-0 fw-bold p-0" value="${actualDate || ''}" style="background: transparent;" onchange="ReportsPage.render(this.value)">
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="card border-0 shadow-sm mb-4">
+                            <div class="card-header bg-white border-0 pt-4 pb-0 d-flex justify-content-between align-items-center">
+                                <h5 class="fw-bold mb-0">System Audit Logs</h5>
+                            </div>
+                            <div class="card-body">
+                                <div class="table-responsive">
+                                    <table class="table table-hover align-middle">
+                                        <thead class="table-light">
+                                            <tr>
+                                                <th>Timestamp</th>
+                                                <th>User</th>
+                                                <th>Action</th>
+                                                <th>Details</th>
+                                                <th>IP Address</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            ${auditLogs && auditLogs.length > 0 ? auditLogs.map(log => `
+                                                <tr>
+                                                    <td class="small text-secondary">${StockSenseAPI.formatDate(log.timestamp?.date || log.timestamp)}</td>
+                                                    <td class="fw-medium">${log.username}</td>
+                                                    <td><span class="badge bg-secondary bg-opacity-10 text-secondary">${log.action}</span></td>
+                                                    <td class="small text-secondary text-wrap" style="max-width: 300px;">${log.details || '-'}</td>
+                                                    <td class="small text-secondary">${log.ip_address || '-'}</td>
+                                                </tr>
+                                            `).join('') : '<tr><td colspan="5" class="text-center py-4 text-secondary">No audit logs found</td></tr>'}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </main>
+                `;
+
+                document.getElementById('reportsApp').innerHTML = html;
+            },
+
+            logout: async function () {
+                console.log('Logging out...');
+                StockSenseAPI.destroySession();
+                window.location.href = 'login.html';
+            }
+        };
+
+        // Initialize the page when DOM is ready
+        document.addEventListener('DOMContentLoaded', function () {
+            ReportsPage.init();
+        });
+    </script>
+
+    <!-- Notification Toast Container -->
+    <div class="toast-container position-fixed bottom-0 end-0 p-3" style="z-index: 1100" id="toastContainer"></div>
+
+    <!-- Bootstrap JS Bundle with Popper -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+
+</html>

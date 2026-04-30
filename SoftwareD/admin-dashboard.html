@@ -1,0 +1,394 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>StockSense PH - Admin Dashboard</title>
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Bootstrap Icons -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Outfit', sans-serif;
+            background-color: #f8fafc;
+        }
+
+        #mainContent {
+            animation: fadeIn 0.5s ease-in-out;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(5px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .nav-link-custom {
+            position: relative;
+            color: #64748b;
+            font-weight: 500;
+            padding: 0.5rem 0.25rem;
+            margin: 0 0.75rem;
+        }
+
+        .nav-link-custom:hover {
+            color: #0d6efd;
+        }
+
+        .nav-link-custom.active {
+            color: #0d6efd;
+        }
+
+        .nav-link-custom.active::after {
+            content: '';
+            position: absolute;
+            bottom: -4px;
+            left: 0;
+            width: 100%;
+            height: 2px;
+            background: #0d6efd;
+        }
+
+        .security-banner {
+            background: linear-gradient(135deg, #0b5e9e 0%, #084298 100%);
+            color: white;
+        }
+
+        .card-hover {
+            transition: all 0.3s ease;
+        }
+
+        .card-hover:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15) !important;
+        }
+
+        .stat-icon {
+            width: 48px;
+            height: 48px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 12px;
+            font-size: 1.5rem;
+        }
+
+        .noti-badge {
+            padding: 0.35em 0.5em;
+            line-height: 1;
+        }
+
+        .dropdown-toggle::after {
+            display: none !important;
+        }
+    </style>
+</head>
+
+<body>
+    <script src="api.js"></script>
+    <script>
+        // Check session and role
+        const session = StockSenseAPI.getSession();
+        if (!session) {
+            window.location.href = 'login.html';
+        } else if (session.role !== 'admin') {
+            alert('Access denied. Admin only.');
+            window.location.href = 'login.html';
+        }
+    </script>
+
+    <!-- Static Security Banner -->
+    <div class="security-banner px-4 py-2 small d-flex justify-content-between align-items-center">
+        <div class="d-flex align-items-center gap-2">
+            <i class="bi bi-shield-check fs-5"></i>
+            <span>Supplier Procurement | Role: <span class="fw-bold">Admin</span> | <span
+                    id="userNamePlaceholder">...</span></span>
+        </div>
+        <button onclick="AdminDashboard.logout()"
+            class="btn btn-link text-white p-0 text-decoration-none small opacity-75">Logout</button>
+    </div>
+
+    <!-- Static Top Navigation -->
+    <nav class="navbar navbar-expand-lg bg-white shadow-sm sticky-top">
+        <div class="container">
+            <a class="navbar-brand d-flex align-items-center gap-2" href="admin-dashboard.html">
+                <div class="bg-primary bg-gradient rounded-3 p-2 text-white">
+                    <i class="bi bi-boxes fs-4"></i>
+                </div>
+                <span class="fw-bold text-dark fs-4">StockSense PH</span>
+            </a>
+            <div class="d-flex align-items-center gap-2 ms-auto">
+                <!-- Notification Bell -->
+                <div class="dropdown me-3">
+                    <a class="nav-link-custom position-relative dropdown-toggle p-2" href="#" id="notiDropdown"
+                        role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                        <i class="bi bi-bell fs-5"></i>
+                        <span
+                            class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger noti-badge"
+                            style="font-size: 0.6rem; display: none;">
+                            0
+                        </span>
+                    </a>
+                    <div class="dropdown-menu dropdown-menu-end shadow border-0 py-0 overflow-hidden"
+                        aria-labelledby="notiDropdown" style="width: 280px; margin-top: 1rem;">
+                        <div class="p-2 border-bottom bg-light">
+                            <h6 class="mb-0 fw-bold small px-2">Notifications</h6>
+                        </div>
+                        <div id="notificationList" style="max-height: 300px; overflow-y: auto;">
+                            <div class="p-3 text-center text-secondary small">Loading...</div>
+                        </div>
+                    </div>
+                </div>
+                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                    <span class="navbar-toggler-icon"></span>
+                </button>
+            </div>
+
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ms-auto">
+                    <li class="nav-item"><a href="admin-dashboard.html" class="nav-link-custom active">Dashboard</a>
+                    </li>
+                    <li class="nav-item"><a href="inventory.html" class="nav-link-custom">Inventory</a></li>
+                    <li class="nav-item"><a href="sales.html" class="nav-link-custom">Sales</a></li>
+                    <li class="nav-item"><a href="orders.html" class="nav-link-custom">Orders</a></li>
+                    <li class="nav-item"><a href="suppliers.html" class="nav-link-custom">Suppliers</a></li>
+                    <li class="nav-item"><a href="reports.html" class="nav-link-custom">Reports</a></li>
+                    <li class="nav-item"><a href="settings.html" class="nav-link-custom">Settings</a></li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <div id="dashboardApp">
+        <div class="d-flex justify-content-center align-items-center" style="min-height: 400px;">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Loading...</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Notification Toast Container -->
+    <div class="toast-container position-fixed bottom-0 end-0 p-3" style="z-index: 1100" id="toastContainer"></div>
+
+    <script>
+        const AdminDashboard = {
+            session: null,
+
+            init: async function () {
+                this.session = StockSenseAPI.getSession();
+                if (!this.session) return;
+                
+                // Trigger auto-drafting for low stock items
+                const draftResult = await StockSenseAPI.triggerAutoDraftPOs();
+                if (draftResult.success && draftResult.drafts_created > 0) {
+                    StockSenseAPI.showNotification('Procurement Alert', `${draftResult.drafts_created} new draft purchase orders have been auto-generated for low-stock items.`, 'info');
+                }
+
+                // Default to Overall (null)
+                await this.render(null);
+
+                // Check for low stock alerts on load
+                setTimeout(() => StockSenseAPI.checkLowStock(), 1000);
+            },
+
+            refreshWithDate: async function (date) {
+                await this.render(date);
+            },
+
+            render: async function (selectedDate = null) {
+                const stats = await StockSenseAPI.getDashboardStats(selectedDate);
+                const orders = await StockSenseAPI.getRecentSupplierOrders(6, selectedDate);
+
+                // API check
+                const actualDate = stats.effectiveDate;
+
+                // Update session info
+                document.getElementById('userNamePlaceholder').textContent = this.session.name;
+
+                const html = `
+                    <!-- Main Content -->
+                    <main class="container py-4" id="mainContent">
+                        <div class="d-flex justify-content-between align-items-center mb-4">
+                            <div>
+                                <h2 class="fw-bold mb-1">Admin Dashboard</h2>
+                                <p class="text-secondary small mb-0">Overview of your business operations</p>
+                            </div>
+                            <div class="text-end d-flex align-items-center gap-3">
+                                <div style="cursor: pointer;" onclick="AdminDashboard.refreshWithDate(null)">
+                                    <div class="small text-secondary fw-medium">View Mode</div>
+                                    <div class="fw-bold text-primary fs-5">${stats.isOverall ? 'Overall Business' : new Date(actualDate).toLocaleDateString('en-PH', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</div>
+                                </div>
+                                <div class="bg-white p-2 rounded shadow-sm border d-flex align-items-center gap-2">
+                                    <div class="btn-group btn-group-sm">
+                                        <button class="btn btn-outline-primary ${stats.isOverall ? 'active' : ''}" onclick="AdminDashboard.refreshWithDate(null)">All Time</button>
+                                        <button class="btn btn-outline-primary ${!stats.isOverall && actualDate === new Date().toISOString().split('T')[0] ? 'active' : ''}" onclick="AdminDashboard.refreshWithDate(new Date().toISOString().split('T')[0])">Today</button>
+                                        <button class="btn btn-outline-primary" onclick="let d=new Date(); d.setDate(d.getDate()-1); AdminDashboard.refreshWithDate(d.toISOString().split('T')[0])">Yesterday</button>
+                                    </div>
+                                    <input type="date" id="dashDateFilter" class="form-control form-control-sm border-0 fw-bold" style="width: 140px;" onchange="AdminDashboard.refreshWithDate(this.value)" value="${actualDate || ''}">
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Stats Cards -->
+                        <div class="row g-4 mb-4">
+                            <div class="col-md-3">
+                                <div class="card card-hover border-0 shadow-sm h-100">
+                                    <div class="card-body">
+                                        <div class="d-flex align-items-center gap-3">
+                                            <div class="stat-icon bg-primary bg-opacity-10 text-primary">
+                                                <i class="bi bi-box-seam"></i>
+                                            </div>
+                                            <div>
+                                                <p class="text-secondary small mb-1">Total Products</p>
+                                                <h3 class="fw-bold mb-0">${stats.products}</h3>
+                                                <small class="text-success">${stats.productsTrend}</small>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="card card-hover border-0 shadow-sm h-100">
+                                    <div class="card-body">
+                                        <div class="d-flex align-items-center gap-3">
+                                            <div class="stat-icon bg-warning bg-opacity-10 text-warning">
+                                                <i class="bi bi-exclamation-triangle"></i>
+                                            </div>
+                                            <div>
+                                                <p class="text-secondary small mb-1">Low Stock</p>
+                                                <h3 class="fw-bold mb-0">${stats.lowStock}</h3>
+                                                <small class="text-warning">${stats.lowStockTrend}</small>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="card card-hover border-0 shadow-sm h-100">
+                                    <div class="card-body">
+                                        <div class="d-flex align-items-center gap-3">
+                                            <div class="stat-icon bg-success bg-opacity-10 text-success">
+                                                <i class="bi bi-cash"></i>
+                                            </div>
+                                            <div>
+                                                <p class="text-secondary small mb-1">${stats.isOverall ? 'Total Revenue' : "Today's Sales"}</p>
+                                                <h3 class="fw-bold mb-0">${StockSenseAPI.formatCurrency(stats.salesToday)}</h3>
+                                                <small class="text-success">${stats.salesTrend}</small>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="card card-hover border-0 shadow-sm h-100">
+                                    <div class="card-body">
+                                        <div class="d-flex align-items-center gap-3">
+                                            <div class="stat-icon bg-info bg-opacity-10 text-info">
+                                                <i class="bi bi-cart-check"></i>
+                                            </div>
+                                            <div>
+                                                <p class="text-secondary small mb-1">Total Orders</p>
+                                                <h3 class="fw-bold mb-0">${stats.orders}</h3>
+                                                <small class="text-info">${stats.ordersTrend}</small>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Recent Orders and Quick Actions -->
+                        <div class="row g-4">
+                            <div class="col-lg-8">
+                                <div class="card border-0 shadow-sm">
+                                    <div class="card-header bg-white border-0 pt-4 pb-0">
+                                        <h5 class="fw-bold mb-0">Recent Supplier Orders</h5>
+                                    </div>
+                                    <div class="card-body">
+                                        <div class="table-responsive">
+                                            <table class="table table-hover align-middle">
+                                                <thead class="table-light">
+                                                    <tr>
+                                                        <th>Order ID</th>
+                                                        <th>Supplier</th>
+                                                        <th>Total</th>
+                                                        <th>Status</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    ${orders.map(o => `
+                                                        <tr>
+                                                            <td><span class="font-monospace">${o.id}</span></td>
+                                                            <td>${o.supplier_name}</td>
+                                                            <td class="fw-medium">${StockSenseAPI.formatCurrency(o.total)}</td>
+                                                            <td>${StockSenseAPI.getStatusBadge(o.status)}</td>
+                                                        </tr>
+                                                    `).join('')}
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="col-lg-4">
+                                <div class="card border-0 shadow-sm">
+                                    <div class="card-header bg-white border-0 pt-4 pb-0">
+                                        <h5 class="fw-bold mb-0">Quick Actions</h5>
+                                    </div>
+                                    <div class="card-body">
+                                        <div class="d-grid gap-2">
+                                            <a href="inventory.html" class="btn btn-outline-primary text-start p-3">
+                                                <i class="bi bi-box-seam me-2"></i> Manage Inventory
+                                            </a>
+                                            <a href="orders.html" class="btn btn-outline-success text-start p-3">
+                                                <i class="bi bi-cart-plus me-2"></i> Place New Order
+                                            </a>
+                                            <a href="reports.html" class="btn btn-outline-info text-start p-3">
+                                                <i class="bi bi-graph-up me-2"></i> View Reports
+                                            </a>
+                                            <a href="settings.html" class="btn btn-outline-warning text-start p-3">
+                                                <i class="bi bi-gear me-2"></i> System Settings
+                                            </a>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Welcome Message -->
+                        <div class="alert alert-primary bg-opacity-10 border-0 mt-4">
+                            <i class="bi bi-info-circle me-2"></i>
+                            Welcome back, ${this.session.name}! You have full administrative access. 
+                            Last login: ${new Date(this.session.loginTime).toLocaleString()}
+                        </div>
+                    </main>
+                `;
+                document.getElementById('dashboardApp').innerHTML = html;
+            },
+
+            logout: async function () {
+                StockSenseAPI.destroySession();
+                window.location.href = 'login.html';
+            }
+        };
+
+        // Initialize the page when DOM is ready
+        document.addEventListener('DOMContentLoaded', function () {
+            AdminDashboard.init();
+        });
+    </script>
+    <!-- Bootstrap JS Bundle with Popper -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+
+</html>
